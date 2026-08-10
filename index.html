@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FADEP S.A. — Vista supervisión</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;font-size:14px;background:#f4f4f2;color:#1a1a18;min-height:100vh}
+
+.header{background:#1a1a18;color:#fff;padding:11px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+.logo{font-size:17px;font-weight:700;letter-spacing:.5px}.logo span{color:#4a9eff;font-weight:400}
+.header-sub{font-size:11px;color:#888;margin-top:1px}
+.badge-live{padding:3px 10px;border-radius:20px;font-size:11px;background:#1a3a1a;color:#4caf50;border:1px solid #2d6b2d}
+
+.tabs{display:flex;background:#fff;border-bottom:1px solid #e0e0da;padding:0 20px;position:sticky;top:47px;z-index:190}
+.tab{padding:10px 18px;cursor:pointer;font-size:13px;font-weight:500;color:#777;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab.active{color:#1a1a18;border-bottom-color:#2a78d6}
+.tab:hover:not(.active){color:#1a1a18}
+
+.panel{display:none;padding:16px 20px 40px}.panel.active{display:block}
+
+.btn{padding:7px 13px;border:1px solid #d0d0c8;border-radius:7px;background:#fff;color:#1a1a18;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:5px;transition:all .12s;white-space:nowrap;font-family:inherit}
+.btn:hover{background:#f0f0ec;border-color:#b0b0a8}
+.btn.primary{background:#2a78d6;color:#fff;border-color:#2a78d6}.btn.primary:hover{background:#1b65c0}
+.btn.danger{color:#c0392b;border-color:#e0b0ac}.btn.danger:hover{background:#fdf0ee}
+.btn.sm{padding:4px 9px;font-size:12px}
+.btn.ghost{background:none;border:none;color:#999;padding:3px 6px}.btn.ghost:hover{color:#1a1a18;background:#f0f0ec}
+
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.week-nav{font-size:13px;font-weight:700;min-width:200px;text-align:center}
+
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.leg{display:flex;align-items:center;gap:5px;font-size:12px;color:#555}
+.leg-dot{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+.leg-hint{font-size:11px;color:#aaa;font-style:italic}
+
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.stat-card{background:#fff;border:1px solid #e8e8e0;border-radius:9px;padding:12px 14px}
+.stat-val{font-size:22px;font-weight:700;color:#1a1a18}.stat-lbl{font-size:11px;color:#999;margin-top:3px}
+
+.matriz-wrap{overflow-x:auto;border-radius:10px;border:1px solid #e0e0da;background:#fff;margin-bottom:14px}
+.matriz-grid{display:grid;grid-template-columns:175px repeat(5,1fr);min-width:720px}
+.cell-h{padding:9px 8px;background:#f8f8f5;border-bottom:1px solid #e8e8e0;font-size:12px;font-weight:600;color:#666;text-align:center}
+.cell-h.left{text-align:left;padding-left:14px}
+.day-h{display:flex;flex-direction:column;align-items:center;gap:1px}
+.day-name{font-size:12px;font-weight:700;color:#1a1a18}.day-name.today{color:#2a78d6}
+.day-date{font-size:11px;color:#aaa}
+
+.flet-cell{display:flex;align-items:center;gap:9px;padding:10px 12px;background:#fafaf8;border-bottom:1px solid #eeeeea;min-height:60px}
+.flet-cell.last{border-bottom:none}
+.flet-cell.add-row{cursor:pointer;opacity:.65}.flet-cell.add-row:hover{opacity:1;background:#f0f5ff}
+.flet-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.flet-name{font-size:12px;font-weight:700;color:#1a1a18;line-height:1.3}
+.flet-veh{font-size:10px;color:#777;margin-top:1px}.flet-pat{font-size:10px;color:#aaa}
+
+.drop-zone{padding:5px;border-bottom:1px solid #eeeeea;background:#fff;min-height:64px;display:flex;flex-direction:column;gap:3px;transition:background .1s}
+.drop-zone.last-row{border-bottom:none}
+.drop-zone.add-row-cell{background:#fafaf8;opacity:.4;pointer-events:none}
+.drop-zone.drag-over{background:#e8f2ff;outline:2px dashed #2a78d6;outline-offset:-2px}
+
+.tag{padding:4px 7px;border-radius:5px;font-size:11px;cursor:grab;display:flex;align-items:flex-start;gap:4px;border:1px solid transparent;transition:opacity .1s;line-height:1.3}
+.tag:active{cursor:grabbing}
+.tag-inner{flex:1;min-width:0;cursor:pointer}
+.tag-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag-sub{font-size:10px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.tag-rm{background:none;border:none;cursor:pointer;padding:0 0 0 2px;font-size:11px;opacity:.45;color:inherit;line-height:1;flex-shrink:0;font-family:inherit}
+.tag-rm:hover{opacity:1}
+
+.t-propio       {background:#e6f2ff;color:#0c3d7a;border-color:#b8d4f5}
+.t-externo      {background:#f3e8ff;color:#4a1a7a;border-color:#d0a8f5}
+.t-retiro       {background:#e8f5e8;color:#1a4d1a;border-color:#a8d8a8}
+.t-muestra      {background:#e8f5f5;color:#0d4040;border-color:#a0d8d8}
+.t-visita       {background:#fff3e0;color:#6d3800;border-color:#ffc980}
+.t-retiro-planta{background:#fdf0ee;color:#7a2010;border-color:#f5c0b0}
+.t-docum        {background:#e8eeff;color:#1a2a7a;border-color:#a8b8f5}
+.t-traslado     {background:#f5f0e8;color:#4a3800;border-color:#d8c898}
+.t-alimentos    {background:#fff8e6;color:#5a4000;border-color:#f5d878}
+.t-otros        {background:#f0f0f0;color:#444;border-color:#c0c0c0}
+.t-standby      {background:#fdf0ee;color:#7a1010;border-color:#f5b0b0}
+
+.add-here{font-size:11px;color:#ccc;cursor:pointer;padding:3px 5px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;border:none;background:none;font-family:inherit}
+.add-here:hover{color:#2a78d6;background:#f0f5ff}
+
+.pool-title{font-size:12px;font-weight:700;color:#666;margin-bottom:7px}
+.pool{display:flex;flex-wrap:wrap;gap:5px;padding:10px;background:#fff;border:1px dashed #ccc;border-radius:8px;min-height:50px;transition:all .1s}
+.pool.drag-over{border-color:#2a78d6;background:#f0f5ff}
+
+.standby-section{margin-top:16px}
+.standby-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px}
+.standby-title{font-size:12px;font-weight:700;color:#c0392b;display:flex;align-items:center;gap:6px}
+.standby-zone{display:flex;flex-wrap:wrap;gap:5px;padding:10px;background:#fff;border:1.5px dashed #e0a0a0;border-radius:8px;min-height:54px;transition:all .1s}
+.standby-zone.drag-over{border-color:#c0392b;background:#fdf0ee}
+
+.cal-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.cal-title{font-size:16px;font-weight:700;flex:1;text-align:center;color:#1a1a18;text-transform:capitalize}
+.cal-wrap{border-radius:10px;border:1px solid #e0e0da;overflow:hidden;background:#fff}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-dh{text-align:center;font-size:11px;font-weight:700;color:#999;padding:8px 4px;background:#f8f8f5;border-bottom:1px solid #e8e8e0;text-transform:uppercase;letter-spacing:.5px}
+.cal-cell{min-height:100px;padding:5px;border-right:1px solid #eee;border-bottom:1px solid #eee;background:#fff}
+.cal-cell:nth-child(7n){border-right:none}
+.cal-cell.other{background:#f9f9f7;opacity:.55}.cal-cell.today-cal{background:#f0f6ff}
+.cal-num{font-size:11px;font-weight:700;color:#aaa;margin-bottom:3px}
+.cal-cell.today-cal .cal-num{color:#2a78d6}
+.cal-tag{font-size:10px;padding:2px 6px;border-radius:4px;margin-bottom:2px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid transparent;cursor:pointer;transition:filter .1s}
+.cal-tag:hover{filter:brightness(.92)}
+
+#mapContainer{height:calc(100vh - 200px);min-height:480px;border-radius:10px;border:1px solid #e0e0da;overflow:hidden;position:relative}
+.map-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.map-toolbar select{padding:7px 11px;border:1px solid #d0d0c8;border-radius:7px;font-size:13px;background:#fff;color:#1a1a18;font-family:inherit;cursor:pointer}
+.flet-btn{padding:6px 13px;border-radius:20px;border:2px solid transparent;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+.map-stat{background:#fff;border:1px solid #e8e8e0;border-radius:8px;padding:7px 14px;font-size:12px;color:#555;display:flex;align-items:center;gap:6px}
+.map-stat strong{color:#1a1a18;font-size:15px}
+.map-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f8f8f5;gap:10px;z-index:10}
+.map-empty-icon{font-size:40px}.map-empty-txt{font-size:14px;color:#888;text-align:center;line-height:1.6}
+
+.lib-toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.lib-search{padding:8px 12px;border:1px solid #d0d0c8;border-radius:7px;font-size:13px;min-width:220px;background:#fff;font-family:inherit}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px}
+.lib-card{background:#fff;border:1px solid #e8e8e0;border-radius:9px;padding:12px 14px;position:relative}
+.lib-card-name{font-size:13px;font-weight:700;color:#1a1a18;margin-bottom:4px;padding-right:64px;line-height:1.3}
+.lib-card-addr{font-size:12px;color:#555;margin-bottom:3px;line-height:1.4}
+.lib-card-email{font-size:11px;color:#2a78d6}
+.lib-card-actions{position:absolute;top:10px;right:10px;display:flex;gap:4px}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;border:1px solid #e0e0da;width:420px;max-width:100%;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column}
+.modal-header{padding:16px 18px 14px;border-bottom:1px solid #eee;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;position:sticky;top:0;background:#fff;border-radius:12px 12px 0 0;z-index:2}
+.modal-header h3{font-size:15px;font-weight:700;color:#1a1a18;line-height:1.3}
+.modal-body{padding:16px 18px 20px;flex:1}
+.modal-footer{padding:12px 18px;border-top:1px solid #eee;display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:#fff;border-radius:0 0 12px 12px}
+.form-row{margin-bottom:13px}
+.form-row label{display:block;font-size:11px;font-weight:700;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:8px 10px;border:1px solid #d8d8d0;border-radius:6px;font-size:13px;font-family:inherit;color:#1a1a18;background:#fff;transition:border .1s}
+.form-row textarea{resize:vertical;min-height:60px;line-height:1.5}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{outline:none;border-color:#2a78d6}
+.form-row.half{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ficha-row{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+.ficha-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.ficha-label{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.ficha-val{font-size:13px;color:#1a1a18;line-height:1.4}
+.ficha-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:6px;border:1px solid transparent}
+.ac-wrap{position:relative}
+.ac-list{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d0d0c8;border-top:none;border-radius:0 0 7px 7px;max-height:200px;overflow-y:auto;z-index:600;display:none;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.ac-list.open{display:block}
+.ac-item{padding:8px 11px;cursor:pointer;border-bottom:1px solid #f0f0ea}.ac-item:hover{background:#f0f5ff}
+.ac-item:last-child{border-bottom:none}
+.ac-name{font-size:12px;font-weight:700;color:#1a1a18}.ac-addr{font-size:11px;color:#999;margin-top:1px}
+.lf-popup .lf-nombre{font-size:13px;font-weight:700;color:#1a1a18;margin-bottom:6px}
+.lf-popup .lf-row{font-size:12px;color:#444;margin-bottom:3px;display:flex;gap:5px;line-height:1.4}
+.lf-popup .lf-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-bottom:5px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div><div class="logo">FADEP<span>.SA</span></div><div class="header-sub">Vista de supervisión — Solo lectura</div></div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span id="headerDate" style="font-size:12px;color:#888"></span>
+    <span style="padding:3px 10px;border-radius:20px;font-size:11px;background:#1a2a3a;color:#4a9eff;border:1px solid #1a4a7a">👁 Solo lectura</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('matriz')">📋 Matriz semanal</div>
+  <div class="tab" onclick="switchTab('calendario')">📅 Calendario mensual</div>
+  <div class="tab" onclick="switchTab('libreta')">📒 Libreta de destinos</div>
+  <div class="tab" onclick="switchTab('mapa')">🗺 Vista de mapa</div>
+</div>
+
+<!-- PANEL MATRIZ -->
+<div id="panel-matriz" class="panel active">
+  <div class="stats-row" id="statsRow"></div>
+  <div class="toolbar">
+    <button class="btn" onclick="prevWeek()">◀</button>
+    <span class="week-nav" id="weekDisplay"></span>
+    <button class="btn" onclick="nextWeek()">▶</button>
+    <button class="btn" onclick="goToday()">Hoy</button>
+  </div>
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:#e6f2ff;border:1px solid #b8d4f5"></span>Entrega</span>
+    <span class="leg"><span class="leg-dot" style="background:#f3e8ff;border:1px solid #d0a8f5"></span>Retiro proveedor</span>
+    <span class="leg"><span class="leg-dot" style="background:#e8f5e8;border:1px solid #a8d8a8"></span>Devoluciones</span>
+    <span class="leg"><span class="leg-dot" style="background:#e8f5f5;border:1px solid #a0d8d8"></span>Muestras</span>
+    <span class="leg"><span class="leg-dot" style="background:#fff3e0;border:1px solid #ffc980"></span>Visita</span>
+    <span class="leg"><span class="leg-dot" style="background:#fdf0ee;border:1px solid #f5c0b0"></span>Retiro en FADEP</span>
+    <span class="leg"><span class="leg-dot" style="background:#e8eeff;border:1px solid #a8b8f5"></span>Documentación</span>
+    <span class="leg"><span class="leg-dot" style="background:#f5f0e8;border:1px solid #d8c898"></span>Traslado</span>
+    <span class="leg"><span class="leg-dot" style="background:#fff8e6;border:1px solid #f5d878"></span>Insumos</span>
+    <span class="leg"><span class="leg-dot" style="background:#f0f0f0;border:1px solid #c0c0c0"></span>Otros</span>
+    <span class="leg-hint">· Vista de supervisión — solo lectura</span>
+  </div>
+  <div class="matriz-wrap"><div class="matriz-grid" id="matrizGrid"></div></div>
+  <div style="margin-top:14px">
+    <div class="pool-title">📥 Sin asignar <span style="font-size:11px;font-weight:400;color:#aaa">— arrastrá aquí para desasignar</span></div>
+    <div class="pool" id="poolZone"
+>
+      <span style="color:#ccc;font-size:12px;font-style:italic" id="poolEmpty">Pool vacío</span>
+    </div>
+  </div>
+  <div class="standby-section">
+    <div class="standby-header">
+      <div class="standby-title">🔴 Stand by — pendientes de despacho
+        <span style="font-size:10px;font-weight:400;font-style:italic">Arrastrá desde la matriz o el pool · Arrastrá a la matriz para programar</span>
+      </div>
+    </div>
+    <div class="standby-zone" id="standbyZone"
+>
+      <span style="color:#daa;font-size:12px;font-style:italic" id="standbyEmpty">Sin pedidos en stand by</span>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL CALENDARIO -->
+<div id="panel-calendario" class="panel">
+  <div class="cal-nav">
+    <button class="btn" onclick="prevMonth()">◀</button>
+    <span class="cal-title" id="calTitle"></span>
+    <button class="btn" onclick="nextMonth()">▶</button>
+  </div>
+  <div class="legend" style="margin-bottom:12px">
+    <span class="leg"><span class="leg-dot" style="background:#e6f2ff;border:1px solid #b8d4f5"></span>Entrega</span>
+    <span class="leg"><span class="leg-dot" style="background:#f3e8ff;border:1px solid #d0a8f5"></span>Retiro proveedor</span>
+    <span class="leg"><span class="leg-dot" style="background:#e8f5e8;border:1px solid #a8d8a8"></span>Devoluciones</span>
+    <span class="leg"><span class="leg-dot" style="background:#e8f5f5;border:1px solid #a0d8d8"></span>Muestras</span>
+    <span class="leg"><span class="leg-dot" style="background:#fff3e0;border:1px solid #ffc980"></span>Visita</span>
+    <span class="leg"><span class="leg-dot" style="background:#fdf0ee;border:1px solid #f5c0b0"></span>Retiro en FADEP</span>
+    <span class="leg"><span class="leg-dot" style="background:#e8eeff;border:1px solid #a8b8f5"></span>Documentación</span>
+    <span class="leg"><span class="leg-dot" style="background:#f5f0e8;border:1px solid #d8c898"></span>Traslado</span>
+    <span class="leg"><span class="leg-dot" style="background:#fff8e6;border:1px solid #f5d878"></span>Insumos</span>
+    <span class="leg"><span class="leg-dot" style="background:#f0f0f0;border:1px solid #c0c0c0"></span>Otros</span>
+    <span class="leg-hint">· Clic en cualquier visita para ver el detalle</span>
+  </div>
+  <div class="cal-wrap"><div class="cal-grid" id="calGrid"></div></div>
+</div>
+
+<!-- PANEL LIBRETA -->
+<div id="panel-libreta" class="panel">
+  <div class="lib-toolbar">
+    <input class="lib-search" type="text" placeholder="Buscar por nombre o dirección..." oninput="renderLibreta(this.value)" id="libSearch">
+    <span style="font-size:12px;color:#aaa;margin-left:auto" id="libCount"></span>
+  </div>
+  <div class="lib-grid" id="libGrid"></div>
+</div>
+
+<!-- PANEL MAPA -->
+<div id="panel-mapa" class="panel">
+  <div class="map-toolbar">
+    <button class="btn" onclick="mapaWeek(-1)">◀</button>
+    <span style="font-size:13px;font-weight:700;min-width:190px;text-align:center" id="mapaWeekLabel"></span>
+    <button class="btn" onclick="mapaWeek(1)">▶</button>
+    <button class="btn" onclick="mapaGoToday()">Hoy</button>
+    <select id="mapaDia" onchange="renderMapa()" style="margin-left:8px">
+      <option value="0">Lunes</option><option value="1">Martes</option>
+      <option value="2">Miércoles</option><option value="3">Jueves</option><option value="4">Viernes</option>
+    </select>
+    <span style="margin-left:8px;font-size:12px;color:#aaa">Conductor:</span>
+    <div id="mapaFletBtns" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    <button class="btn sm" onclick="mapaFiltroTodos()">Todos</button>
+  </div>
+  <div id="mapaStats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+  <div id="mapContainer">
+    <div class="map-empty" id="mapaEmpty">
+      <div class="map-empty-icon">🗺</div>
+      <div class="map-empty-txt">No hay destinos con dirección cargada para este día.</div>
+    </div>
+    <div id="leafletMap" style="width:100%;height:100%"></div>
+  </div>
+</div>
+
+<!-- MODAL DESTINO (agregar/editar programados) -->
+<div class="overlay" id="modalDestino">
+  <div class="modal">
+    <div class="modal-header"><h3 id="modalDestinoTitle">Agregar destino</h3><button class="btn ghost" onclick="closeModalDestino()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row"><label>Cliente / Destino</label><div class="ac-wrap">
+        <input type="text" id="fNombre" placeholder="Escribí para buscar o ingresá nuevo..." oninput="acSearch(this.value)" autocomplete="off">
+        <div class="ac-list" id="acList"></div>
+      </div></div>
+      <div class="form-row"><label>Dirección</label><input type="text" id="fDir" placeholder="Calle, número, localidad"></div>
+      <div class="form-row"><label>Tipo de movimiento</label>
+        <select id="fTipo">
+          <option value="propio">🚚 Entrega de mercadería</option>
+          <option value="externo">🚛 Retiro en proveedor</option>
+          <option value="retiro">📦 Retiro de devoluciones</option>
+          <option value="muestra">🧪 Envío/Retiro de muestras</option>
+          <option value="visita">🤝 Visita comercial/producción</option>
+          <option value="retiro-planta">🏭 Retiro de mercadería en FADEP</option>
+          <option value="docum">📄 Envío de documentación</option>
+          <option value="traslado">🧑 Traslado de personas</option>
+          <option value="alimentos">🔧 Insumos/diligencias</option>
+          <option value="otros">🔩 Otros</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Conductor</label><select id="fFletero"></select></div>
+      <div class="form-row"><label>Transportista externo</label><input type="text" id="fTransp" placeholder="Ej: Expreso Conte, Mostto, Via Cargo..."></div>
+      <div class="form-row half">
+        <div><label>Día</label>
+          <select id="fDia">
+            <option value="-1">Sin asignar (pool)</option>
+            <option value="0">Lunes</option><option value="1">Martes</option>
+            <option value="2">Miércoles</option><option value="3">Jueves</option><option value="4">Viernes</option>
+          </select>
+        </div>
+        <div><label>Email de contacto</label><input type="email" id="fEmail" placeholder="contacto@empresa.com"></div>
+      </div>
+      <div class="form-row"><label>Qué enviamos / retiramos</label><textarea id="fEnvio" placeholder="Ej: 200 bidones 5L PET · Remito 00012345"></textarea></div>
+      <div class="form-row"><label>Notas / observaciones</label><textarea id="fNotas" placeholder="Ej: Coordinar con Adrián · Antes de las 11hs"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModalDestino()">Cancelar</button>
+      <button class="btn primary" onclick="confirmarDestino()" id="btnConfirmarDestino">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL STAND BY -->
+<div class="overlay" id="modalStandby">
+  <div class="modal">
+    <div class="modal-header"><h3 id="modalStandbyTitle">Agregar a stand by</h3><button class="btn ghost" onclick="closeStandbyModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row"><label>Cliente / Destino</label><div class="ac-wrap">
+        <input type="text" id="sbNombre" placeholder="Nombre del cliente..." oninput="acSearchSb(this.value)" autocomplete="off">
+        <div class="ac-list" id="acListSb"></div>
+      </div></div>
+      <div class="form-row"><label>Dirección</label><input type="text" id="sbDir" placeholder="Dirección de entrega"></div>
+      <div class="form-row"><label>Tipo de movimiento</label>
+        <select id="sbTipo">
+          <option value="propio">🚚 Entrega de mercadería</option>
+          <option value="externo">🚛 Retiro en proveedor</option>
+          <option value="retiro">📦 Retiro de devoluciones</option>
+          <option value="muestra">🧪 Envío/Retiro de muestras</option>
+          <option value="visita">🤝 Visita comercial/producción</option>
+          <option value="retiro-planta">🏭 Retiro de mercadería en FADEP</option>
+          <option value="docum">📄 Envío de documentación</option>
+          <option value="otros">🔩 Otros</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Qué enviamos / retiramos</label><textarea id="sbEnvio" placeholder="Ej: 50 bidones 20L · Remito pendiente"></textarea></div>
+      <div class="form-row"><label>Motivo del stand by</label><textarea id="sbMotivo" placeholder="Ej: Falta de pago · Sin dirección confirmada · Pendiente de coordinación"></textarea></div>
+      <div class="form-row"><label>Email de contacto</label><input type="email" id="sbEmail" placeholder="contacto@empresa.com"></div>
+      <div class="form-row"><label>Notas adicionales</label><textarea id="sbNotas" placeholder="Observaciones internas..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeStandbyModal()">Cancelar</button>
+      <button class="btn primary" onclick="confirmarStandby()" id="btnConfirmarSb">Agregar a stand by</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FICHA DETALLE -->
+<div class="overlay" id="modalFicha">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div id="fichaBadge" class="ficha-badge"></div><h3 id="fichaNombre"></h3></div>
+      <button class="btn ghost" onclick="closeFicha()">✕</button>
+    </div>
+    <div class="modal-body" id="fichaBody"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeFicha()">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- MODAL CONDUCTOR EVENTUAL -->
+<div class="overlay" id="modalFletero">
+  <div class="modal">
+    <div class="modal-header"><h3>Agregar conductor eventual</h3><button class="btn ghost" onclick="closeModalFletero()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row"><label>Nombre</label><input type="text" id="fltNombre" placeholder="Nombre completo"></div>
+      <div class="form-row"><label>Vehículo</label><input type="text" id="fltVehiculo" placeholder="Ej: Ford Transit, Renault Trafic..."></div>
+      <div class="form-row"><label>Patente</label><input type="text" id="fltPatente" placeholder="Ej: AB 123 CD"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModalFletero()">Cancelar</button>
+      <button class="btn primary" onclick="confirmarFletero()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LIBRETA -->
+<div class="overlay" id="modalLibreta">
+  <div class="modal">
+    <div class="modal-header"><h3 id="libTitle">Nuevo destino</h3><button class="btn ghost" onclick="closeLibModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row"><label>Nombre / Razón social</label><input type="text" id="lNombre" placeholder="Nombre completo"></div>
+      <div class="form-row"><label>Dirección</label><input type="text" id="lDir" placeholder="Calle, número, localidad"></div>
+      <div class="form-row"><label>Email de contacto</label><input type="email" id="lEmail" placeholder="contacto@empresa.com"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeLibModal()">Cancelar</button>
+      <button class="btn primary" onclick="confirmarLib()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+let LIBRETA = [
+  {id:'L1',nombre:'VEGLIA S.A',direccion:'Martín Rodríguez 3750, Quilmes',email:''},
+  {id:'L2',nombre:'VECHER S.A.',direccion:'Paracas 250, Barracas, Comuna 4, Ciudad Autónoma de Buenos Aires',email:'adrian@vecher.com.ar'},
+  {id:'L3',nombre:'FERREIRA AGUSTIN HERNAN',direccion:'Directorio 3548, Caseros',email:'agustinferreiramdq@gmail.com'},
+  {id:'L4',nombre:'REFRIOIL LUBRICANTES S.A.S.',direccion:'Humboldt 333, Ramos Mejía',email:'ventas@refrioil.com'},
+  {id:'L5',nombre:'Hiled',direccion:'Perito Moreno 845, Canning',email:'facturacion@hiled.com.ar'},
+  {id:'L6',nombre:'Ludmi',direccion:'Sargento Cabral 1655, Villa Ballester',email:''},
+  {id:'L7',nombre:'PASCUAL CARUSO',direccion:'Calle 180 1567, B1655 Villa José León Suárez',email:''},
+  {id:'L8',nombre:'Supermercado Los Pibes',direccion:'Manuel Belzu 5560, Munro',email:''},
+  {id:'L9',nombre:'Oscar',direccion:'O\'Higgins 2450, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L10',nombre:'PLASTICOS SANTA MARIA SA',direccion:'Av. Brig. Gral. Juan Manuel de Rosas 2969, Villa José León Suárez',email:''},
+  {id:'L11',nombre:'Tecno San Martin',direccion:'Calle 79 1638, San Martín',email:''},
+  {id:'L12',nombre:'FERCOL LUBRICANTES S.R.L.',direccion:'C. 1236 629, Ingeniero J. Allan',email:'natalia@fercollubricantes.com.ar'},
+  {id:'L13',nombre:'PRODUCTOS VENIER S.A.',direccion:'Calle 58 no1244, Villa Maipú',email:'cintia@pinturasvenier.com'},
+  {id:'L14',nombre:'MOLYSIL ARGENTINA S.A.',direccion:'Catamarca 1856, Piñeyro',email:'jimena.marcet@molysil.com'},
+  {id:'L15',nombre:'EDUARDO RUSSO Y CIA. S.A.',direccion:'ICU, Eva Perón 1160, Lanús',email:'smaciel@tecnoclor.com.ar'},
+  {id:'L16',nombre:'ECOLAB ARGENTINA SRL',direccion:'Calle 11 978, Fatima, Pilar',email:'wanda.gomez@ecolab.com'},
+  {id:'L17',nombre:'FRAMINGHAM PHARMA SRL',direccion:'Plaza Industrial Escobar, Colectora Este Ramal Escobar, Loma Verde',email:'nicolas@framingham.com.ar'},
+  {id:'L18',nombre:'SUCESION DE PIDONE MARIA ANTONIA',direccion:'Portela 3447, Ciudad Autónoma de Buenos Aires',email:'tomibuiatti09@gmail.com'},
+  {id:'L19',nombre:'GOLD PLAST DE VIGIL JUAN DIEGO',direccion:'Arrieta 3977, San Justo',email:''},
+  {id:'L20',nombre:'SILVANO HNOS',direccion:'Avenida Varela 3250, Ciudad Autónoma de Buenos Aires',email:'info@ush.com.ar'},
+  {id:'L21',nombre:'MARCILLI EDULCORANTES',direccion:'Avenida Intendente Francisco Rabanal 1460, Ciudad Autónoma de Buenos Aires',email:'ventas@marcilli.com.ar'},
+  {id:'L22',nombre:'POMONA FOODS',direccion:'Av. Bernardo Ader 3620, Munro',email:'INFO@POMONAFOODS.COM'},
+  {id:'L23',nombre:'LISS GLOSS INTERNATIONAL S.A.S.',direccion:'Gral. Hornos 827, B1672 Villa Lynch',email:'pablo@lissgloss.com'},
+  {id:'L24',nombre:'PROBUSOL S.A.',direccion:'Av. Pres. Arturo Umberto Illia 11956, Tortuguitas',email:'compras@probusol.com.ar'},
+  {id:'L25',nombre:'GOLISANO LORENA ELIZABETH',direccion:'ASG, Salguero 2079, B1690 Pablo Podestá',email:''},
+  {id:'L26',nombre:'LOPES GUSTAVO GABRIEL',direccion:'Ituzaingó 2917, Lanús',email:''},
+  {id:'L27',nombre:'INSUMOS PLASTICOS S.A.',direccion:'Tres Sargentos 1131, Gerli',email:'josemanuelferreira@insumosplasticos.com.ar'},
+  {id:'L28',nombre:'Biafar Sanidad Animal SRL',direccion:'Vélez Sársfield 4790, Munro, Vicente López, Buenos Aires',email:''},
+  {id:'L29',nombre:'Supergas',direccion:'Vélez Sársfield 5573, Munro',email:''},
+  {id:'L30',nombre:'Nissi Tec',direccion:'Paso 1761, B1650 Villa Lynch',email:''},
+  {id:'L31',nombre:'ESTABLECIMIENTO CALASTREME SA',direccion:'La Paz 2150, Martínez',email:'compras@calastreme.com.ar'},
+  {id:'L32',nombre:'MP CAR SHOP SRL',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'mpcarshop@hotmail.com'},
+  {id:'L33',nombre:'Banco Santander',direccion:'Av. de los Constituyentes 5857, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L34',nombre:'Quimica True Sociedad Anonima',direccion:'Av. Pedro Dreyer 2678, Monte Grande',email:''},
+  {id:'L35',nombre:'HOUSE PROTEIN',direccion:'General Gorriti 650, Avellaneda',email:'carlosboneto@hotmail.com'},
+  {id:'L36',nombre:'Entaplast',direccion:'Presidente Juan Domingo Perón 1149, Moreno',email:''},
+  {id:'L37',nombre:'ADOX S.A.',direccion:'ARC, Cerrito 1225, Ituzaingó',email:'compras@adox.com.ar'},
+  {id:'L38',nombre:'SERIGRAFIA ALLEGRETTI de CAlle',direccion:'CEA, Salguero 1355, B1751 La Tablada',email:''},
+  {id:'L39',nombre:'Natural Queen',direccion:'Colombia 1958, Gerli',email:'Lailarios1999@hotmail.com'},
+  {id:'L40',nombre:'Gráfica Límite',direccion:'Vélez Sársfield 1233, Lanús',email:''},
+  {id:'L41',nombre:'BEDSON S.A.',direccion:'Ruta Provincial 8 47, La Lonja',email:'proveedores@bedson.com'},
+  {id:'L42',nombre:'YOGURADE',direccion:'Ruta Provincial 28 & Calle 212, Pilar',email:'hargento@yogurade.com.ar'},
+  {id:'L43',nombre:'COOPERATIVA DE TRABAJO SAFRA LIMITADA',direccion:'Calle 109 N° 2243, Berazategui',email:'christian.coopsafra@gmail.com'},
+  {id:'L44',nombre:'Pérsico Sanitarios',direccion:'Prof. Agustín Rogelio Vidal 4345, B1650 San Martín',email:''},
+  {id:'L45',nombre:'Witpel Papelera y Libreria',direccion:'Int. Witcomb 2354, Villa Ballester',email:''},
+  {id:'L46',nombre:'Bulonera Munro',direccion:'Alexander Fleming 2101, Munro',email:''},
+  {id:'L47',nombre:'PENETRIT',direccion:'Puente del Inca 2450, Carlos Spegazzini',email:'bvelazquez@penetrit.com'},
+  {id:'L48',nombre:'TOTAL ESPECIALIDADES ARGENTINA S.A.',direccion:'Chiclana 209, La Tablada',email:'marina.perelman@total.com'},
+  {id:'L49',nombre:'LABORATORIO TRITON VET SRL',direccion:'Lavalle 2063, Villa Maipú',email:'administracion@triton-vet.com'},
+  {id:'L50',nombre:'PREPAN SOCIEDAD ANONIMA',direccion:'Salvador Debenedetti 8155, José León Suárez',email:'pagoaproveedores@plavicon.com'},
+  {id:'L51',nombre:'All clean',direccion:'Croacia 3061, Ciudadela',email:''},
+  {id:'L52',nombre:'Farmacia Galvagni',direccion:'Vélez Sársfield 5501, Munro',email:''},
+  {id:'L53',nombre:'DUARTE MAXIMILIANO',direccion:'Av. Arturo Illia 1361, Bella Vista',email:''},
+  {id:'L54',nombre:'EP ECOPRINT',direccion:'Avenida 25 de Mayo 1888, San Martín',email:''},
+  {id:'L55',nombre:'Netfarma',direccion:'John W. Cooke 3275, Ciudad Autónoma de Buenos Aires',email:'laboratorio.fcia.plazoleta@gmail.com'},
+  {id:'L56',nombre:'VABAR LIN SRL',direccion:'Miravé 1625, Ituzaingó',email:''},
+  {id:'L57',nombre:'HECWALPLASTIC de Héctor Omar B',direccion:'Calle Castex 5628, Villa Libertad',email:''},
+  {id:'L58',nombre:'QUIMICA KEKOL S.R.L.',direccion:'Av. J M de Rosas 2575, San Justo',email:'proveedores@kekol.com.ar'},
+  {id:'L59',nombre:'MERCLIN S.A.',direccion:'Avenida Eva Perón 4049, Villa Juan Martín de Pueyrredón',email:'proveedores@merclin.com.ar'},
+  {id:'L60',nombre:'Maigal SA',direccion:'AVC, Avenida Crisólogo Larralde 5461, Wilde',email:''},
+  {id:'L61',nombre:'Sproven',direccion:'Doctora Alicia Moreau de Justo 1379, Villa Chacabuco',email:''},
+  {id:'L62',nombre:'TECNOLOGIA INTELIGENTE',direccion:'Coronel Maure 1813, Gerli',email:'leo.grattaroli@gmail.com'},
+  {id:'L63',nombre:'Miguel Sobrino',direccion:'Vidal 1554, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L64',nombre:'ALOE CALCHAQUI S.R.L',direccion:'Maturín 2843, Ciudad Autónoma de Buenos Aires',email:'ventas@aloejual.com.ar'},
+  {id:'L65',nombre:'ZITAFARMA',direccion:'Av. Coronel Roca 3450, Ciudad Autónoma de Buenos Aires',email:'AUGUSTOVILLEGAS98@GMAIL.COM'},
+  {id:'L66',nombre:'DELTAFARMA SRL',direccion:'Av. Coronel Roca 3450, Ciudad Autónoma de Buenos Aires',email:'AUGUSTOVILLEGAS98@GMAIL.COM'},
+  {id:'L67',nombre:'LABORATORIO WEIZUR ARGENTINA S.A.',direccion:'John W. Cooke 3155, Ciudad Autónoma de Buenos Aires',email:'silvanam@weizur.com'},
+  {id:'L68',nombre:'TEYCIA',direccion:'ART, Avenida Bernardo Ader 676, Boulogne',email:''},
+  {id:'L69',nombre:'Sanitarios Alcorta',direccion:'Amancio Alcorta 5052, B1653 Munro',email:''},
+  {id:'L70',nombre:'REDIMER S.A.',direccion:'Parque Industrial Moreno 2, Cuartel V',email:'lucia.blanco@redimer.com.ar'},
+  {id:'L71',nombre:'NGM SEALS SRL',direccion:'Abelardo Arias 3441, Francisco Alvarez',email:''},
+  {id:'L72',nombre:'ACCESORIOS TOP AUTO S.A.',direccion:'Colectora norte, esq. Puente de chañar, General Rodríguez',email:'administracion@accesoriostopauto.com'},
+  {id:'L73',nombre:'LAAPSA',direccion:'Lamadrid 474, Troncos del Talar',email:'proveedores@laapsa.com.ar'},
+  {id:'L74',nombre:'GAIA SA',direccion:'Avenida Coronel Roca 3450, Ciudad Autónoma de Buenos Aires',email:'proveedores@sayritabacos.com.ar'},
+  {id:'L75',nombre:'Induquimika',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'compras2@induquimika.com.ar'},
+  {id:'L76',nombre:'Diagnóstico / Laboratorio Maipú',direccion:'Av. Cabildo 457, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L77',nombre:'Productos quimicos Salta SRL',direccion:'Doctor Profesor Pedro Chutro 2457, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L78',nombre:'LABORATORIO ENA',direccion:'Zepita 3251, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L79',nombre:'VERDEAGUA HIDROPONIA SRL',direccion:'Cuenca 1441, Quilmes',email:'hidroponiaverdeagua@gmail.com'},
+  {id:'L80',nombre:'CAPUPLAS DE CAPUZZI ANGEL',direccion:'Calle 78 5751, Villa Libertad',email:''},
+  {id:'L81',nombre:'NATURAL Y ORGANICO SRL',direccion:'Ricardo Rojas 3939, Villa Adelina',email:'jvietri@fibertel.com.ar'},
+  {id:'L82',nombre:'BAVASSO, NESTOR GABRIEL',direccion:'Juan Bautista Alberdi 19, San Miguel',email:''},
+  {id:'L83',nombre:'Aqualim',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'aqualimsantotome@yahoo.com'},
+  {id:'L84',nombre:'PUMA Constituyentes',direccion:'Av. de los Constituyentes 5095, Florida Oeste, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L85',nombre:'ALKO S.R.L. - Materiales Eléctricos',direccion:'Av. de los Constituyentes 3800, Villa Granaderos de San Martín',email:''},
+  {id:'L86',nombre:'Laboratorio Mitai',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'farmaciasantotome@gmail.com'},
+  {id:'L87',nombre:'OXIDIAL SOCIEDAD DE RESPONSIBILIDAD LIMITADA',direccion:'Av. 101 Dr. Ricardo Balbín 5094, Billinghurst',email:'produccion.oxidial.mdp@grupofg.com.ar'},
+  {id:'L88',nombre:'Aikén Servicios Gráficos',direccion:'Doctor Ramón Carrillo 2383, San Martín',email:''},
+  {id:'L89',nombre:'Matricero',direccion:'Corrales 2366, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L90',nombre:'RAFAEL OSVALDO Y RICARDO OSCAR CAFARELLI',direccion:'Gral. Roca 3636, Ciudadela',email:'rocafarelli@hotmail.com.ar'},
+  {id:'L91',nombre:'VIP LABEL SRL',direccion:'Cabildo 1975, Ciudadela',email:''},
+  {id:'L92',nombre:'DASIPA',direccion:'Avenida Lope de Vega 2030, Ciudad Autónoma de Buenos Aires',email:'proveedores@dasipa.com.ar'},
+  {id:'L93',nombre:'LEONE JOSE OSCAR',direccion:'Berón de Astrada 2675, Ciudad Autónoma de Buenos Aires',email:'jose.leone@outlook.com'},
+  {id:'L94',nombre:'LABORATORIO CIMOL',direccion:'Presidente Juan Domingo Perón 4535, La Tablada',email:'compras@cimol.com.ar'},
+  {id:'L95',nombre:'Yerba La Gloria',direccion:'Ortiz de Ocampo 3302, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L96',nombre:'BROMETAN S R L',direccion:'Puente del Inca 2050, Carlos Spegazzini',email:'pagos@brometan.com.ar'},
+  {id:'L97',nombre:'QUIMICA DEL NORTE S.A.',direccion:'Larrea 2983, Lomas del Mirador',email:'julian@petrilac.com.ar'},
+  {id:'L98',nombre:'Body Advance',direccion:'San Roque 4564, Ciudadela',email:''},
+  {id:'L99',nombre:'QUIMICA LUAR SRL',direccion:'Cmte. Francisco Carbonari 1955, C1168ACG, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L100',nombre:'Farmacia Mediterranea',direccion:'Doctor Pedro Ignacio Rivera 5801, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L101',nombre:'AMA OIL Y CIA SOCIEDAD DE RESPONSABILIDAD LIMITADA S.R.L.',direccion:'Av. Pres. Dr. Néstor Kirchner 3912, Platanos',email:'virginia.marinaro@amaoils.com'},
+  {id:'L102',nombre:'Plásticos VG',direccion:'Sudamérica 1321, Caseros',email:''},
+  {id:'L103',nombre:'Fer Carranza',direccion:'Teniente Espora 9242, Pablo Podestá',email:''},
+  {id:'L104',nombre:'ROWA S.A.',direccion:'Bombas Rowa, Belén de Escobar',email:'comprasfe@rowa.com.ar'},
+  {id:'L105',nombre:'AIQ S.A.',direccion:'Calle M. Cuenca 707, Villa Lynch',email:''},
+  {id:'L106',nombre:'MEL, REINALDO EDUARDO',direccion:'Charcas 1530, Ramos Mejía',email:''},
+  {id:'L107',nombre:'Novarplast',direccion:'Suipacha 3939, San Martín',email:''},
+  {id:'L108',nombre:'TECNOTAP S.A.',direccion:'Francisco Moreno 1600, Moreno',email:''},
+  {id:'L109',nombre:'HIDROQUIMICA AMERICANA S.A.',direccion:'Avenida Jorge Newbery 3954, Ciudad Autónoma de Buenos Aires',email:'solanatile@solanatile.com.ar'},
+  {id:'L110',nombre:'MASTER CLEAN SA',direccion:'Doctor Profesor Pedro Chutro no2457, Ciudad Autónoma de Buenos Aires',email:'epaz@masterclean.com.ar'},
+  {id:'L111',nombre:'Polímeros',direccion:'1ᵒ de Agosto de 1806 3551, Villa Juan Martín de Pueyrredón',email:''},
+  {id:'L112',nombre:'Indarnil',direccion:'Avenida Eva Peron 597, Berazategui Oeste',email:''},
+  {id:'L113',nombre:'Full Car',direccion:'Cerrito 1412, Ituzaingó',email:'patricia@fullcarweb.com.ar'},
+  {id:'L114',nombre:'Mallol',direccion:'Tucumán 1175, Morón',email:''},
+  {id:'L115',nombre:'Pacurie Srl',direccion:'Pedriel 1516, Martínez',email:''},
+  {id:'L116',nombre:'FAST CHEMICAL S.R.L.',direccion:'San Salvador de Jujuy 1300, Carlos Spegazzini',email:'adiolosa@gmail.com'},
+  {id:'L117',nombre:'CRAPSA S.R.L.',direccion:'Avenida General San Martín 4218, Lomas del Mirador',email:'alsidesbolasina@gmail.com'},
+  {id:'L118',nombre:'Luisina Bourlot',direccion:'Comuna 4, Traful 3730, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L119',nombre:'MOLINOS M&C SRL',direccion:'John W. Cooke 3255, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L120',nombre:'INDUSTRIAS PROMISUR S R L',direccion:'Berón de Astrada 2681, C1437FSQ, Ciudad Autónoma de Buenos Aires',email:'info@industriaspromisur.com.ar'},
+  {id:'L121',nombre:'Unión Obreros y Empleados Plásticos (UOYEP)',direccion:'San Martín 1927, San Martín',email:''},
+  {id:'L122',nombre:'ENSOL SA',direccion:'Calle 10 786, Fatima',email:'CSANTOYANNI@ENSOLSA.COM'},
+  {id:'L123',nombre:'LUBRICANTES AVELLANEDA',direccion:'Uruguay 1115, Piñeyro',email:'entregas@lasaulubes.com'},
+  {id:'L124',nombre:'Plasticos Landplast',direccion:'Espinosa 780, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L125',nombre:'INDUSTRIAS D W SOCIEDAD ANONIMA',direccion:'Coronel Manuel Rosetti 3556, Olivos',email:'industriasdwsa@gmail.com'},
+  {id:'L126',nombre:'Empresa de fraccionamiento y embolsado',direccion:'John W. Cooke 3255, Ciudad Autónoma de Buenos Aires',email:'forte@efesasa.com.ar'},
+  {id:'L127',nombre:'Andres - Muestras',direccion:'Maestra María Rodríguez 2317, Hurlingham',email:''},
+  {id:'L128',nombre:'VECHER PITTS',direccion:'Paracas 250, Barracas, Comuna 4, Ciudad Autónoma de Buenos Aires',email:'adrian@vecher.com.ar'},
+  {id:'L129',nombre:'GRUPO ORLEP S.A.S.',direccion:'Paracas 261, Ciudad Autónoma de Buenos Aires',email:'gdavila@orlep.com.ar'},
+  {id:'L130',nombre:'Verónica',direccion:'Mendoza 7426, Loma Hermosa',email:''},
+  {id:'L131',nombre:'Wassington SACIF',direccion:'Gualeguaychú 2068, Ciudadela',email:''},
+  {id:'L132',nombre:'Dispeko',direccion:'República de Israel 3271, Villa Lynch',email:'pagos@dispeko.com'},
+  {id:'L133',nombre:'KLUBER LUBRICATION ARGENTINA S A',direccion:'Martín J. Haedo 4301, Florida Oeste',email:'COMPRAS.AR@KLUEBER.COM'},
+  {id:'L134',nombre:'Sextual',direccion:'Parque Chacabuco, Cachimayo 1947, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L135',nombre:'FAEVE SOCIEDAD ANONIMA',direccion:'Av. Gral. Francisco Fernández de la Cruz 2340, Ciudad Autónoma de Buenos Aires',email:'info@faeve.com'},
+  {id:'L136',nombre:'Regidor',direccion:'Caxaraville 2139, Gerli',email:''},
+  {id:'L137',nombre:'Dano Gatillos',direccion:'Gral. Juan Lavalle 1861, Florida',email:''},
+  {id:'L138',nombre:'Grafica Maroni',direccion:'Hilarión de la Quintana 1030, Florida',email:''},
+  {id:'L139',nombre:'CAREVI',direccion:'lirios del talar general jose de, General Artigas 3188, General Pacheco, Tigre',email:''},
+  {id:'L140',nombre:'FREZZI S A',direccion:'Av. Int. Francisco Rabanal 2662, Ciudad Autónoma de Buenos Aires',email:'frezziadmin@familiafrezzi.com'},
+  {id:'L141',nombre:'Facundo Salminci',direccion:'Pirovano 559, Martínez',email:'facu.barcelona@hotmail.com'},
+  {id:'L142',nombre:'KIT VIVIR',direccion:'Ruiz Huidobro 1645, Ciudad Autónoma de Buenos Aires',email:'kitvivir@litvivir.com'},
+  {id:'L143',nombre:'UNICEF',direccion:'Paraguay 733, Ciudad Autónoma de Buenos Aires',email:'meperez@unicef.org'},
+  {id:'L144',nombre:'Mero SA',direccion:'Av. Pinedo 50, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L145',nombre:'WOHR QUIMICA SOCIEDAD DE RESPONSABILIDAD LIMITADA',direccion:'Avenida San Pedrito 3849, Ciudad Autónoma de Buenos Aires',email:'wohr@wohrquimica.com.ar'},
+  {id:'L146',nombre:'Ikona Solutions',direccion:'Humboldt 264, General Pacheco',email:''},
+  {id:'L147',nombre:'Mervick Lab SA',direccion:'MERVICK LAB, Pilar access - North Colectora km40, Del Viso - Pdo. Pilar',email:''},
+  {id:'L148',nombre:'PatBetPlast',direccion:'Beethoven 1720, Hurlingham',email:''},
+  {id:'L149',nombre:'HERFUNVET SA ( Ex Camarda)',direccion:'Avenida San Pedrito 3456, Ciudad Autónoma de Buenos Aires',email:'jorgelinacamarda@hotmail.com'},
+  {id:'L150',nombre:'INSTITUTO BIOLOGICO CORDOBA SRL',direccion:'Balbastro 3109, Ciudad Autónoma de Buenos Aires',email:'Contaduria@ibccba.com'},
+  {id:'L151',nombre:'ENERGYPHARMA SRL',direccion:'Av. de los Lagos 3860, Rincón de Milberg',email:''},
+  {id:'L152',nombre:'EXCO S.R.L.',direccion:'Bahía Blanca 3116, San Andrés',email:'exco@fibertel.com.ar'},
+  {id:'L153',nombre:'Julio García',direccion:'José González Castillo 345, Ramos Mejía',email:''},
+  {id:'L154',nombre:'Princz - IPASA',direccion:'Calle 78 5808, Villa Libertad',email:''},
+  {id:'L155',nombre:'Plastic Quil',direccion:'Tucumán 545, Quilmes',email:''},
+  {id:'L156',nombre:'Reverdecer',direccion:'Comuna 4, Traful 3773, Ciudad Autónoma de Buenos Aires',email:'fernandoproduccion2@gmail.com'},
+  {id:'L157',nombre:'Princz IPASA',direccion:'Lacroze 5844, San Martín',email:''},
+  {id:'L158',nombre:'Mateo Robledo',direccion:'Monteagudo 754, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L159',nombre:'KELUBE',direccion:'RP8 10449, Loma Hermosa',email:'kelube.internacional@gmail.com'},
+  {id:'L160',nombre:'Laboratorio Fundación',direccion:'Avelino Díaz 2535, Ciudad Autónoma de Buenos Aires',email:'info@labfundacion.com.ar'},
+  {id:'L161',nombre:'INDUSTRIAS PLASTICAS SUMA SRL',direccion:'Pueyrredón 4957, San Martín',email:''},
+  {id:'L162',nombre:'Pastelarte / Punto Glazé',direccion:'Bermejo 3263, San Justo',email:''},
+  {id:'L163',nombre:'SYLVESTER ROSE',direccion:'Comuna 15, Llerena 2833, Comuna 15, CABA, Ciudad Autónoma de Buenos Aires',email:'sandra@emaildiamant.com.ar'},
+  {id:'L164',nombre:'SONDAS Y CATETERES  S.R.L.',direccion:'Uruguay 1046, Piñeyro',email:'sondasycateteresventas@gmail.com'},
+  {id:'L165',nombre:'INAP SRL',direccion:'Magallanes 1168, Ciudad Autónoma de Buenos Aires',email:'FBERTONA@INAPAR.COM.AR'},
+  {id:'L166',nombre:'Menudencias',direccion:'Menudencias S.A., Avenida Brigadier General Juan Manuel de Rosas, Loma Hermosa',email:''},
+  {id:'L167',nombre:'Ellecktra Imagen Global',direccion:'Via Cargo Berazategui, Avenida Presidente Doctor Néstor Kirchner, Berazategui',email:''},
+  {id:'L168',nombre:'QUIMSA',direccion:'Av. Rigolleau 1547, Berazategui',email:''},
+  {id:'L169',nombre:'COLVINIL S.R.L.',direccion:'Paraguay 2524, Valentín Alsina',email:'info@colvinil.com.ar'},
+  {id:'L170',nombre:'CHEMICAL S. R. L.',direccion:'Portela 3447, Ciudad Autónoma de Buenos Aires',email:'productoschemicalsrl@hotmail.com'},
+  {id:'L171',nombre:'Colegio Pestalozzi',direccion:'Mariscal Antonio José de Sucre 3235, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L172',nombre:'Bylappiel',direccion:'Vélez Sársfield 4319, Munro',email:''},
+  {id:'L173',nombre:'QUIMICA INDUSTRIAL BAHIENSE S.A.',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'contable@quimicabahiensesa.com.ar'},
+  {id:'L174',nombre:'Innovar Agro',direccion:'Cno. Gral. Belgrano 2299, B1879 Quilmes Oeste',email:'innovaragrosjn@gmail.com'},
+  {id:'L175',nombre:'INGIA SRL',direccion:'Machaín 4337, Saavedra, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L176',nombre:'ARIEL SAMUEL SAWICKI',direccion:'Tres Arroyos 329, Haedo',email:'alan_sawi@hotmail.com'},
+  {id:'L177',nombre:'Esteve abrasivos',direccion:'Lascano 2070, CABA, Ciudad Autónoma de Buenos Aires',email:'sandra@emaildiamant.com.ar'},
+  {id:'L178',nombre:'MIX INSUMOS VETERINARIOS',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'montielsandra@live.com.ar'},
+  {id:'L179',nombre:'ADVANCED SISTEMS SA',direccion:'Calle Austria Norte 998, Troncos del Talar',email:'myriam@gelcoatads.com.ar'},
+  {id:'L180',nombre:'Biocircular SA',direccion:'CNF, Manuel Basavilbaso 4114, Olivos',email:''},
+  {id:'L181',nombre:'Proar Pilar SA',direccion:'Calle 11 438, Fatima',email:''},
+  {id:'L182',nombre:'Retiro de PVC',direccion:'Calle 78 5808, Villa Libertad',email:''},
+  {id:'L183',nombre:'PRODUFIM S.A.',direccion:'Ruta Provincial 24 & Moliére, Cuartel V',email:'ppopritkin@isoquim.com.ar'},
+  {id:'L184',nombre:'Libro de Actas',direccion:'Vidal 1554, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L185',nombre:'TYC Argentina',direccion:'Descartes 4265, Tortuguitas',email:'santiagok@tycargentina.com.ar'},
+  {id:'L186',nombre:'Facundo Marin',direccion:'Mariano Acha 1071, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L187',nombre:'Asaeo SRL',direccion:'Parque Chacabuco, Cachimayo 1947, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L188',nombre:'Refrescos del Centro S.A.',direccion:'Av. Gral. Francisco Fernández de la Cruz 2340, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L189',nombre:'FFO SA',direccion:'Crespo 3135, C1437ASE C1437ASF, CABA',email:''},
+  {id:'L190',nombre:'Laboratorios Infinity',direccion:'Monasterio 181, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L191',nombre:'MEREDITH',direccion:'Doctor Pedro Honaine 2908, Villa San Andrés',email:''},
+  {id:'L192',nombre:'Imprenta Libro de Actas',direccion:'Avenida Monroe 5359, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L193',nombre:'BREAKING LAB',direccion:'Sebastián Gaboto 4730, Munro',email:'info@breakinglab.com.ar'},
+  {id:'L194',nombre:'Nico',direccion:'San José 1567 fondo, José León Suárez',email:''},
+  {id:'L195',nombre:'Ecomambo',direccion:'Constitución 288, Ramos Mejía',email:'info@ecomambo.com.ar'},
+  {id:'L196',nombre:'GEOTEC DISEÑOS DE AVANZADA SA',direccion:'Av. Gral. San Martín 1456, Ramos Mejía',email:'geotec@geotecsa.com'},
+  {id:'L197',nombre:'WASSINGTON SACIFEI',direccion:'Gualeguaychú 2068, Ciudadela',email:'proveedores@wassington.com.ar'},
+  {id:'L198',nombre:'Amorrortu Publicidad SRL',direccion:'Juan Agustín García 1127, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L199',nombre:'Koky Ballester',direccion:'Alvear 2700, Villa Ballester',email:''},
+  {id:'L200',nombre:'SINTEPLAST SOCIEDAD ANONIMA',direccion:'San Salvador de Jujuy 2001, Carlos Spegazzini',email:'jribe@sinteplast.com.ar'},
+  {id:'L201',nombre:'Caños Plaza SRL',direccion:'Cmte. Luis Piedra Buena 4550, Munro',email:''},
+  {id:'L202',nombre:'Eduardo Matricero',direccion:'Tucumán 5655, Loma Hermosa',email:''},
+  {id:'L203',nombre:'TRILLIAN S.R.L.',direccion:'José Mármol 556, Ciudad Autónoma de Buenos Aires',email:'contacto@magicspray.com.ar'},
+  {id:'L204',nombre:'Sexitive',direccion:'Lima 1548, Martínez',email:''},
+  {id:'L205',nombre:'Pablo Espósito',direccion:'Santa Rosa 1465, Vicente López',email:''},
+  {id:'L206',nombre:'GRUPO BOSS S.R.L.',direccion:'José C. Paz 3450, Ciudad Autónoma de Buenos Aires',email:'administracion@grupoboss.com.ar'},
+  {id:'L207',nombre:'LABORATORIO ELMER',direccion:'Domingo de Acassuso 3570, Olivos',email:'laboratorioelmer@gmail.com'},
+  {id:'L208',nombre:'FLOEMA',direccion:'Berón de Astrada 2675, Ciudad Autónoma de Buenos Aires',email:'artusajulian46@gmail.com'},
+  {id:'L209',nombre:'DIOL Pro - System',direccion:'Charrúa 3737, Ciudad Autónoma de Buenos Aires',email:'olmos@diol.com.ar'},
+  {id:'L210',nombre:'Acqua Garden',direccion:'12 de Octubre 265, Avellaneda',email:'administracion@acquagarden.com.ar'},
+  {id:'L211',nombre:'Artepint',direccion:'Av. Int. Francisco Rabanal 3069, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L212',nombre:'Escribanía Zaidemberg',direccion:'Mitre 3743, San Martín',email:''},
+  {id:'L213',nombre:'Impresionate',direccion:'Santos Dumont 4819, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L214',nombre:'NODULO S.A.',direccion:'General Manuel Belgrano 5656, Caseros',email:'compras@nodulo.com'},
+  {id:'L215',nombre:'APILAB S.R.L.',direccion:'Av. Int. Francisco Rabanal 3159, Ciudad Autónoma de Buenos Aires',email:'pringles@apilab.com'},
+  {id:'L216',nombre:'Sanitarios Barbieri',direccion:'Vélez Sársfield 5363, Munro',email:''},
+  {id:'L217',nombre:'Estudio Jurídico',direccion:'Marcelo T. de Alvear 1381, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L218',nombre:'KANSACO PETROQUIMICA S A',direccion:'Hernando de Magallanes 2051, Florencio Varela',email:'info@kansaco.com'},
+  {id:'L219',nombre:'CANME',direccion:'Vélez Sársfield 4790, Munro',email:''},
+  {id:'L220',nombre:'Laboratorios Baliarda',direccion:'Cochabamba 2525, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L221',nombre:'RESEARCH AG',direccion:'Juan Mapaicena 2249, Troncos del Talar',email:'alejandra.riera@research-ag.com'},
+  {id:'L222',nombre:'Natural Plus',direccion:'Monseñor José Francisco Marcón 2955, San Justo',email:'compras@naturalplus.com.ar'},
+  {id:'L223',nombre:'Alein de Alejandro Einstoss',direccion:'Av. Vélez Sarsfield 5424, Munro',email:'alein@alein.com.ar'},
+  {id:'L224',nombre:'EQUIDIET COMPANY SA',direccion:'Equidiet Company SA, Colectora Ruta Nacional 8, Fatima',email:'proveedores@equidiet.info'},
+  {id:'L225',nombre:'Maderera Grau y Weiss',direccion:'Diag. 31 2601, Villa Granaderos de San Martín',email:''},
+  {id:'L226',nombre:'EC LABS SA',direccion:'Juana Azurduy 1520, Ciudad Autónoma de Buenos Aires',email:'administracion@equi-care.com.ar'},
+  {id:'L227',nombre:'AGRIMARKETING SA',direccion:'Concejal Sequeira 4021, Ituzaingó',email:''},
+  {id:'L228',nombre:'DINI',direccion:'Av. San Pedrito 3731, Ciudad Autónoma de Buenos Aires',email:'info@productosdini.com.ar'},
+  {id:'L229',nombre:'Flytab SRL',direccion:'Emilio Frugone 4441, Caseros',email:'administracion@flynight.com.ar'},
+  {id:'L230',nombre:'Sixcom',direccion:'Suipacha 2678, Villa Juan Martín de Pueyrredón',email:''},
+  {id:'L231',nombre:'LIJAS ARGENTINAS S.R.L.',direccion:'Baradero 1450, Villa Lynch',email:'compras@lijashunter.com.ar'},
+  {id:'L232',nombre:'Provecom Industrial',direccion:'Avenida de los Constituyentes 3730, Villa Granaderos de San Martín',email:''},
+  {id:'L233',nombre:'BENEFICIAL  GERMS S.A',direccion:'Ruta Provincial 24 6502, Cuartel V',email:'info@bgsa.com.ar'},
+  {id:'L234',nombre:'Ecofertil SRL',direccion:'Algarrobo 1001, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L235',nombre:'DP higiene',direccion:'Lamadrid 481, Troncos del Talar',email:'proveedores@dphigiene.com.ar'},
+  {id:'L236',nombre:'Lebenmix S.A.',direccion:'Churruca 8765, Loma Hermosa',email:''},
+  {id:'L237',nombre:'Escribanía',direccion:'Lima 355, CABA, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L238',nombre:'Pharma alioth',direccion:'Avenida Independencia 1511, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L239',nombre:'BioSyn',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L240',nombre:'DISTRIBUIDORA WALAS S.R.L.',direccion:'Belgrano 1439, Merlo',email:'distribuidorawalas@hotmail.com'},
+  {id:'L241',nombre:'Farloc',direccion:'Frasle Mobility S.A., Colectora Oeste Panamericana, Garin',email:''},
+  {id:'L242',nombre:'MICROSULES ARGENTINA',direccion:'Microsules Argentina planta Garin, Garin',email:'mgiudicelli@microsules.com.ar'},
+  {id:'L243',nombre:'Chiodi Metal',direccion:'C. 99 2742, Villa Yapeyú',email:''},
+  {id:'L244',nombre:'VETERINARIA SECCION TURF',direccion:'Cerrito 2393, San Martín',email:'arasa.ar205@gmail.com'},
+  {id:'L245',nombre:'BIOCAMP S.A.',direccion:'Manuel Ricardo Trelles 2669, Ciudad Autónoma de Buenos Aires',email:'biocampsarrhh@gmail.com'},
+  {id:'L246',nombre:'QUIMICA GALI S.A.',direccion:'Enrique Fernández 4045, Lanús',email:'info@quimicagali.com'},
+  {id:'L247',nombre:'Diego Santelli',direccion:'Quesada 2637, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L248',nombre:'MATRICERIA SAN JUAN ARGENTINA S.R.L',direccion:'San Juan 1050, Quilmes',email:''},
+  {id:'L249',nombre:'Forpol Impresiones SRL',direccion:'Gallo 1061, Banfield',email:''},
+  {id:'L250',nombre:'Vitamin Way',direccion:'Zavaleta 661, Ciudad Autónoma de Buenos Aires',email:'slembeye@saintgottard.com'},
+  {id:'L251',nombre:'Shuk Industrial',direccion:'Muñecas 1375, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L252',nombre:'OpenPack',direccion:'Avenida Bernardo Ader 2750, Munro',email:''},
+  {id:'L253',nombre:'Ferretería Gullini',direccion:'Domingo Matheu 2356, Munro',email:''},
+  {id:'L254',nombre:'Novachem SAU',direccion:'Polo industrial, Gral. Rodríguez',email:''},
+  {id:'L255',nombre:'PALLETS SAN ANDRES S.A',direccion:'Palmar 644, Lomas del Mirador',email:''},
+  {id:'L256',nombre:'Fama',direccion:'Pedro Ferré 2368, Rafael Castillo',email:'info@accesoriosfama.com.ar'},
+  {id:'L257',nombre:'Héctor Enrique Dalinger',direccion:'Portela 3447, Ciudad Autónoma de Buenos Aires',email:'Hectordal07@gmail.com'},
+  {id:'L258',nombre:'Nutrifarms srl',direccion:'Berón de Astrada 2814, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L259',nombre:'Química DR SRL',direccion:'Transtotal Pack SAS, Ferré 2029, FUM, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L260',nombre:'HUAGRO SA',direccion:'Avenida Pinedo 50, Ciudad Autónoma de Buenos Aires',email:'compras@huagro.com.ar'},
+  {id:'L261',nombre:'CREDIFIN Logística San Martin',direccion:'Cerrito 2393, San Martín',email:''},
+  {id:'L262',nombre:'DR ESTEBAN MARRONA',direccion:'San Martín de Tours 2952, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L263',nombre:'GODREJ ARGENTINA',direccion:'Colectora sur acceso oeste, esq. Ypf, B1748 Gral. Rodríguez',email:'bernardo.zak@godrejcp.com'},
+  {id:'L264',nombre:'BONGOURBANO S.R.L',direccion:'Virrey Loreto 2351, Munro',email:'administracion@bongo.com.ar'},
+  {id:'L265',nombre:'STONCOR SOUTH CONE S.A.',direccion:'Albert Einstein 1095, Garin',email:'g_foquina@stoncor.com.ar'},
+  {id:'L266',nombre:'Warsil',direccion:'Dr. Schweitzer 2050, Ciudadela',email:'diemartinez.dmm@gmail.com'},
+  {id:'L267',nombre:'Guante Blanco',direccion:'Comuna 4, Agustín de Vedia 3056, Ciudad Autónoma de Buenos Aires',email:'susimpleza@gmail.com'},
+  {id:'L268',nombre:'PINTURAS MISIONERAS S.R.L.',direccion:'Pergamino 1969, Ciudad Autónoma de Buenos Aires',email:'proveedores@pinturas-misioneras.com.ar'},
+  {id:'L269',nombre:'DPMG SA',direccion:'Puente del Inca 2450, Carlos Spegazzini',email:'gsilva@dpmg.com.ar'},
+  {id:'L270',nombre:'Pulverizadores Gran Presión',direccion:'Hernan Cortés 249, Avellaneda',email:''},
+  {id:'L271',nombre:'UOMAX ACE',direccion:'KDC, Sitio de Montevideo 25, Lanús',email:'administracion@uomax.com.ar'},
+  {id:'L272',nombre:'TERLECKI ROMAN',direccion:'AJS, Manuel Castro 4000, Lanús',email:'drterlecki@yahoo.com.ar'},
+  {id:'L273',nombre:'ZEOCAR SACI',direccion:'Coronel Juan Antonio Lezica 3447, San Justo',email:'cortiz@zeocar.com'},
+  {id:'L274',nombre:'Fusion Quimica',direccion:'Almirante Brown 3066, Villa Ballester',email:''},
+  {id:'L275',nombre:'M&V TecnoQuimica',direccion:'Joaquín Spandonari 3596, Caseros',email:''},
+  {id:'L276',nombre:'Expreso Brio',direccion:'Gabino Ezeiza 8542, Loma Hermosa',email:''},
+  {id:'L277',nombre:'Vía Cargo Munro',direccion:'Av. Vélez Sarsfield 4846, Munro',email:''},
+  {id:'L278',nombre:'Stalk SRL',direccion:'DOM, Carabobo 401, Valentín Alsina',email:''},
+  {id:'L279',nombre:'GESON S.A.',direccion:'Victorino de la Plaza 649, Villa Lynch',email:''},
+  {id:'L280',nombre:'Grafica Límite',direccion:'Vélez Sársfield 1233, Lanús',email:''},
+  {id:'L281',nombre:'GALAXYA NUTRIENTS',direccion:'Lafayette 1841, Ciudad Autónoma de Buenos Aires',email:'galaxyanutrients@hotmail.com'},
+  {id:'L282',nombre:'Controles Electrónicos FERMI',direccion:'Pje. Dr. Alejandro Korn 4335, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L283',nombre:'LUCES CANDLES',direccion:'Comuna 4, Ferré 2018, Ciudad Autónoma de Buenos Aires',email:'luceschivilcoy@gmail.com'},
+  {id:'L284',nombre:'LABORATORIOS RODENTHIA S.A',direccion:'Ituzaingó 2676, Lanús',email:'leandro@bechlab.com'},
+  {id:'L285',nombre:'Electrofer',direccion:'Av. Pres. Juan Domingo Perón 5870, Villa Libertad',email:''},
+  {id:'L286',nombre:'FRIGORIFICO BARBIAN SRL',direccion:'Comuna 4, Traful 3773, Ciudad Autónoma de Buenos Aires',email:'jorgebarbian@hotmail.com'},
+  {id:'L287',nombre:'ANSES San Martín',direccion:'Saavedra 2048, San Martín',email:''},
+  {id:'L288',nombre:'Hogar del Carmen SRL',direccion:'Albariño 356, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L289',nombre:'QUIMISEF S.A.',direccion:'Bernardo de Irigoyen 1831, Florida Oeste',email:'adrian@quimisef.com.ar'},
+  {id:'L290',nombre:'DREAMCO S. A.',direccion:'Otto Krause 5319, Area de Promoción El Triángulo',email:'mtiani@dreamco.com.ar'},
+  {id:'L291',nombre:'Jolgraf SRL',direccion:'Gallo 1061, Banfield',email:''},
+  {id:'L292',nombre:'Hotel Naval',direccion:'Av. Córdoba 622, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L293',nombre:'Nodulo Oficina',direccion:'Mariano Moreno 5673, Caseros',email:''},
+  {id:'L294',nombre:'AGROINSUMOS S. A.',direccion:'Caldas 175, Ciudad Autónoma de Buenos Aires',email:'proveedores@laboratoriosagroinsumos.com'},
+  {id:'L295',nombre:'Claro Ballester',direccion:'San Lorenzo 3773, San Martín',email:''},
+  {id:'L296',nombre:'Servigas SRL',direccion:'Venezuela 3801, Villa Martelli',email:''},
+  {id:'L297',nombre:'Diego Coppola',direccion:'San Vicente 6077, Villa Libertad',email:''},
+  {id:'L298',nombre:'LABORATORIO LAIQUEN S.A.',direccion:'Carlos Berg 3591, BEK, Ciudad Autónoma de Buenos Aires',email:'info@laiquen.com'},
+  {id:'L299',nombre:'Cipres',direccion:'Dr. Prof. Pedro Chutro 2735, Ciudad Autónoma de Buenos Aires',email:'proveedores@cipreslimpieza.com.ar'},
+  {id:'L300',nombre:'Estancia Los Naranjos',direccion:'Yapeyú 1574, San Martín',email:''},
+  {id:'L301',nombre:'CRISTALES MAX',direccion:'Portela 3447, Ciudad Autónoma de Buenos Aires',email:'tomibuiatti09@gmail.com'},
+  {id:'L302',nombre:'Lectus S.A.',direccion:'Av. Belgrano 1217 piso 5, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L303',nombre:'BetterInside SRL',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L304',nombre:'Tecnofresh',direccion:'Luna 1299, Barracas, Ciudad Autónoma de Buenos Aires',email:'administracion@tecno-fresh.com.ar'},
+  {id:'L305',nombre:'PETITE AFFAIRE',direccion:'Av. Sta Fe 1573, San Isidro',email:'productos@petiteaffaire.com.ar'},
+  {id:'L306',nombre:'YPF',direccion:'Manuel Augusto Dr, Manuel Montes de Oca 6897, Carapachay',email:''},
+  {id:'L307',nombre:'VAMP ALQUIMIA NATURAL S.R.L.',direccion:'Blas Pascal 4456, La Reja',email:'vamp_alquimia_natural@hotmail.com'},
+  {id:'L308',nombre:'ROSETO PERFUMES S A I Y C',direccion:'Parque Chacabuco, Senillosa 1339, BPA, Ciudad Autónoma de Buenos Aires',email:'cuentasroseto@hotmail.com'},
+  {id:'L309',nombre:'FARMACIA DEL JARDIN',direccion:'Monasterio 181, Parque Patricios, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L310',nombre:'Mariano Soressi',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L311',nombre:'MARAVITA',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'ANLOPEZSF@GMAIL.COM'},
+  {id:'L312',nombre:'JUNTAS CICCARELLI',direccion:'San Salvador de Jujuy 1300, Carlos Spegazzini',email:'compras2@ciccarelli.com.ar'},
+  {id:'L313',nombre:'MALT DISTRIBUCION',direccion:'Calle 101 9 de Julio 4030, Villa Juan Martín de Pueyrredón',email:'bernardoquaranta@gmail.com'},
+  {id:'L314',nombre:'ECOPROL S R L',direccion:'Juan Manuel de Rosas 3509, Caseros',email:'rodrigo.loyola@ecoprol.com.ar'},
+  {id:'L315',nombre:'GRANOTEC ARGENTINA SA',direccion:'Albert Einstein 739, B1619 Garin',email:'eotero@granotec.com.ar'},
+  {id:'L316',nombre:'Sintaxis',direccion:'Pueyrredón 2461, Villa Ballester',email:''},
+  {id:'L317',nombre:'ISDE S.R.L.',direccion:'Las Rosas 6817, Loma Hermosa',email:''},
+  {id:'L318',nombre:'INTERLUB S.A..',direccion:'CEL 992, Loma Hermosa',email:'eduardo@interlubsa.com'},
+  {id:'L319',nombre:'Croppers',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L320',nombre:'Todosloveran - Raquel Mendoza',direccion:'Olga Cossettini 1540, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L321',nombre:'Plásticos Marsan Sanitarios',direccion:'Av. Bartolomé Mitre 3233, Munro',email:''},
+  {id:'L322',nombre:'PHARMABIOTECH SRL',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'ADMNISTRACION@PHARMABIOTECH.COM.AR'},
+  {id:'L323',nombre:'Tare',direccion:'Las Heras 2570, San Fernando',email:''},
+  {id:'L324',nombre:'EURO   2000 S.A.',direccion:'Girardot 1901, Ciudad Autónoma de Buenos Aires',email:'cristian@questioncolor.com.ar'},
+  {id:'L325',nombre:'Dapeti SA',direccion:'John W. Cooke 3185, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L326',nombre:'Raizen',direccion:'California 3201, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L327',nombre:'Ezequiel Wodzak Adorisio',direccion:'Av. Vélez Sarsfield 71, Villa Madero',email:''},
+  {id:'L328',nombre:'Arcor',direccion:'Guillermo White 4546, Munro',email:''},
+  {id:'L329',nombre:'EL MORINGUERO',direccion:'Comuna 4, Traful 3773, Nueva Pompeya, Ciudad Autónoma de Buenos Aires',email:'elmoringuero.bsas@gmail.comv'},
+  {id:'L330',nombre:'Biomen',direccion:'José León Suárez 3262, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L331',nombre:'ALTABA SILVIO OMAR',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'altabas@yahoo.com'},
+  {id:'L332',nombre:'GUSTAVO CLARA MAQUINARIAS S.A.S.',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'administracion@clararepuestos.com'},
+  {id:'L333',nombre:'Zocalos',direccion:'Av. Maipú 3366, Olivos',email:''},
+  {id:'L334',nombre:'DAB Logistic SRL',direccion:'Pergamino 1969, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L335',nombre:'Transportes Baymar',direccion:'Zavaleta 661, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L336',nombre:'Laboratorio Mi Flora SRL',direccion:'Av. Gaona 4338, CABA, Ciudad Autónoma de Buenos Aires',email:'Administracion@labmiflora.com.ar'},
+  {id:'L337',nombre:'Nivel Cero',direccion:'Puan 5266, Caseros',email:'chemicalelab@gmail.com'},
+  {id:'L338',nombre:'ACG Athens Chemical Group',direccion:'Julio Argentino Roca, Florida Oeste',email:'Compras@athenschemicalgroup.com'},
+  {id:'L339',nombre:'Farmacias Villegas',direccion:'Av. Coronel Roca 3450, Ciudad Autónoma de Buenos Aires',email:'augustovillegas98@gmail.com'},
+  {id:'L340',nombre:'SIGMAFARMA SRL',direccion:'Av. Coronel Roca 3450, Ciudad Autónoma de Buenos Aires',email:'augustovillegas98@gmail.com'},
+  {id:'L341',nombre:'FOLIARMAX S.A.',direccion:'Castañon 3651, Ciudad Autónoma de Buenos Aires',email:'fpereyra@foliarmax.com.ar'},
+  {id:'L342',nombre:'Laboratorio Viesain',direccion:'Julio Troxler 3120, CABA, Ciudad Autónoma de Buenos Aires',email:'neferro0@gmail.com'},
+  {id:'L343',nombre:'PINAMAR HIGIENE INSTITUCIONAL S.R.L.',direccion:'Av. Suárez 2590, Barracas, Ciudad Autónoma de Buenos Aires',email:'PINALIMP@GMAIL.COM'},
+  {id:'L344',nombre:'Protex',direccion:'Calle Austria Norte 2009, Troncos del Talar',email:'proveedores@prokrete.com'},
+  {id:'L345',nombre:'Aluminio Perfimet',direccion:'Av. La Plata 2352, CABA, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L346',nombre:'STA - SEÑORITA',direccion:'Gral. Hornos 1051, Villa Lynch',email:'contabilidad@productossenorita.com.ar'},
+  {id:'L347',nombre:'AGRO INVEST SRL',direccion:'Carlos María Ramírez 890, Ciudad Autónoma de Buenos Aires',email:'juanfmenendez@biomen.com.ar'},
+  {id:'L348',nombre:'Rubicat Argentina SRL',direccion:'Teniente Alberto Grande 746, Luis Guillon',email:'rosina@rubicat.com.ar'},
+  {id:'L349',nombre:'NALDO LOMBARDI S A',direccion:'Carlos María Ramírez 890, Ciudad Autónoma de Buenos Aires',email:'patricio.lombardi@naldo.com.ar'},
+  {id:'L350',nombre:'EVERY DAY',direccion:'Bartolomé Mitre 5429, Villa Lynch',email:'everydaynature@hotmail.com'},
+  {id:'L351',nombre:'COACH ARGENTINA SA',direccion:'Paracas 250, Barracas, Comuna 4, Ciudad Autónoma de Buenos Aires',email:'mariano@coach200.com'},
+  {id:'L352',nombre:'CADEC',direccion:'Humberto Primo 1525, Lanús',email:''},
+  {id:'L353',nombre:'Climax Chiller',direccion:'Av. Gral. San Martín 6969, Villa Madero',email:''},
+  {id:'L354',nombre:'Bio Viano SA',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'todolimpio@gmail.com'},
+  {id:'L355',nombre:'ANAEROBICOS S.R.L.',direccion:'Calle 117 6274, Loma Hermosa',email:'proveedores@anaerobicos.com.ar'},
+  {id:'L356',nombre:'Clorotec',direccion:'Av. Brig. Gral. Juan Manuel de Rosas 2969, José León Suárez',email:'lramirez@swa.com.ar'},
+  {id:'L357',nombre:'TREINE S.A.',direccion:'Aviador Alejandro Fernandez 2319, Hurlingham',email:'l.petre@treine.com.ar'},
+  {id:'L358',nombre:'LABORATORIOS RICHMOND DIVISION VETERINARIA SA',direccion:'Fragata Heroina 4988, Grand Bourg',email:'compras@richmondvet.com.ar'},
+  {id:'L359',nombre:'Transporte ScorDina',direccion:'Comuna 4, Av. Amancio Alcorta 3473, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L360',nombre:'Transporte TransRe',direccion:'John W. Cooke 3155, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L361',nombre:'Instituto Sanitas',direccion:'Saladillo 2459, Ciudad Autónoma de Buenos Aires',email:'proveedores@sanitas.com.ar'},
+  {id:'L362',nombre:'INTERNATIONAL CHEMICALS  DE ARGENTINA SA',direccion:'Santiago del Estero 1949, Ciudad Autónoma de Buenos Aires',email:'proveedores@ica-sa.com.ar'},
+  {id:'L363',nombre:'SC Pro',direccion:'Tres Arroyos 329, Haedo',email:'JOR.BENITEZ@OUTLOOK.COM'},
+  {id:'L364',nombre:'LABORATORIO IQB',direccion:'Martín García 3157, Quilmes',email:'info@laboratorioiqb.com.ar'},
+  {id:'L365',nombre:'PLATAFINISH',direccion:'DHD, General las Heras 190, Dock Sud, Avellaneda',email:'omarcm26@gmail.com'},
+  {id:'L366',nombre:'AL-FA CHEMICAL',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'Angelmarcelopuntillo@gmail.com'},
+  {id:'L367',nombre:'FRANCISCO CONTRERAS',direccion:'Dr. Prof. Pedro Chutro 2451, Ciudad Autónoma de Buenos Aires',email:'Monteblancopyr@hotmail.com'},
+  {id:'L368',nombre:'Cooperativa Vieytes',direccion:'Vieytes 1743, Ciudad Autónoma de Buenos Aires',email:'info@ghelco.com'},
+  {id:'L369',nombre:'Real Plast',direccion:'Las Palmas 1940, San Justo',email:'productosrealplast@gmail.com'},
+  {id:'L370',nombre:'Mojotoro',direccion:'Avenida Montes de Oca 2099, Ciudad Autónoma de Buenos Aires',email:'mineramojotoro@gmail.com'},
+  {id:'L371',nombre:'CECCARELLI, SERGIO GUSTAVO RENE',direccion:'Cerrito 2393, San Martín',email:'cuentas907@cevasa.com.ar'},
+  {id:'L372',nombre:'CARBONFE',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'queglas@gmail.com'},
+  {id:'L373',nombre:'Flyrepel',direccion:'Avenida Gaona 7201, Moreno',email:'pauladawi@yahoo.com'},
+  {id:'L374',nombre:'BARRIONUEVO, VICTOR EDUARDO',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'ccentrorepuestos@gmail.com'},
+  {id:'L375',nombre:'Mario Forti',direccion:'Juncal 635, Temperley',email:'labofri@gmail.com'},
+  {id:'L376',nombre:'SEVERINO JONATHAN RAFAEL',direccion:'Soldado Héctor Caballero 9781, Loma Hermosa',email:''},
+  {id:'L377',nombre:'Grupo Esmeralda SRL',direccion:'Estanislao Zeballos 333, Avellaneda',email:'matias@esmeraldalimpieza.com.ar'},
+  {id:'L378',nombre:'SUGAR POT',direccion:'Costa Rica 5238, Area de Promoción El Triángulo',email:'javier.sasso@gmail.com'},
+  {id:'L379',nombre:'LABORATORIO DE AROMAS S.A.',direccion:'Andonaegui 1279, Ciudad Autónoma de Buenos Aires',email:'darioleon@laboratoriodearomas.com'},
+  {id:'L380',nombre:'JOT Limpieza',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'JOTLIMPIEZA@HOTMAIL.COM'},
+  {id:'L381',nombre:'Muestras',direccion:'Martín Rodríguez 3368, Quilmes',email:''},
+  {id:'L382',nombre:'DISTRIBUIDORA MAB',direccion:'Montesquieu 587, Ciudad Autónoma de Buenos Aires',email:'SEINE@DISTRIBUIDORAMAB.COM.AR'},
+  {id:'L383',nombre:'WM ARGENTINA',direccion:'Choele Choel 1010, Valentín Alsina',email:'compras@wmargentina.com.ar'},
+  {id:'L384',nombre:'FOOD GRADE ARGENTINA',direccion:'Gral. Álvarez 1065, Bernal Oeste',email:'ZacariasLeone@gmail.com'},
+  {id:'L385',nombre:'Flexoquil',direccion:'Lavalle 276, Quilmes',email:''},
+  {id:'L386',nombre:'Laboratorios Alcometer',direccion:'Ávalos 190, Ciudad Autónoma de Buenos Aires',email:'noemiv@alcometer.com.ar'},
+  {id:'L387',nombre:'PRODUCTOS ASOMBROSO S.R.L.',direccion:'Av. Mitre 4476, Caseros',email:'christian01_79@hotmail.com'},
+  {id:'L388',nombre:'Alcometer Laboratorios',direccion:'Ávalos 190, Ciudad Autónoma de Buenos Aires',email:'noemiv@alcometer.com.ar'},
+  {id:'L389',nombre:'DISTRIBUIDORA GAVAROTTO',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'info@gavarotto.com.ar'},
+  {id:'L390',nombre:'Expo',direccion:'Av. Costanera Rafael Obligado 1221, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L391',nombre:'ARMATH SRL',direccion:'Vieytes 1052, Ciudad Autónoma de Buenos Aires',email:'administracion@slimeargentina.com'},
+  {id:'L392',nombre:'ASIA W  S.R.L.',direccion:'Virgilio 844, Ciudad Autónoma de Buenos Aires',email:'julian.issler@gmail.com'},
+  {id:'L393',nombre:'K78 CHEMICAL S.R.L.',direccion:'Washington 251, General Pacheco',email:''},
+  {id:'L394',nombre:'LARING 919 SOCIEDAD ANONIMA',direccion:'Av. Militar 4281, Ciudadela',email:'proveedores@laring.com'},
+  {id:'L395',nombre:'Tranzillo Pablo Dario',direccion:'J. H. Martínez 1724, Villa Maipú',email:'pablo_a4@hotmail.com'},
+  {id:'L396',nombre:'Tambores',direccion:'Grito de Asencio 3270, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L397',nombre:'LUBRICANTES VIGO S.R.L.',direccion:'Avenida Díaz Vélez 258, Ciudadela',email:''},
+  {id:'L398',nombre:'REVESTIMIENTOS SITEX  SRL',direccion:'Zoilo Cantón 4761, Villa Lynch',email:'compras@sitex.com.ar'},
+  {id:'L399',nombre:'PH HERRAMIENTAS Y MAQUINAS',direccion:'Julio Troxler 3190, Ciudad Autónoma de Buenos Aires',email:'mjpherramientasymaquinas@gmail.com'},
+  {id:'L400',nombre:'TECNOLOGIA ARGENTINA EN CINTAS SA T A C S A',direccion:'Felipe Pastre 1790, Hurlingham',email:'juan.ferrero@tacsa.com.ar'},
+  {id:'L401',nombre:'ARGENTOL S.R.L.',direccion:'Chile 1026, Valentín Alsina',email:'musieduardo@yahoo.com.ar'},
+  {id:'L402',nombre:'INDUSTRIAS PLASTICAS DE ARIEL MACHAY S.A.',direccion:'Dorrego 3150, San Andrés',email:''},
+  {id:'L403',nombre:'OVNIPLAST S.A',direccion:'Enrique Becquerel 4661, Area de Promoción El Triángulo',email:''},
+  {id:'L404',nombre:'Pink mask',direccion:'O\'Donnell 3774, Villa Ballester',email:'cmosquera@pinkmaskgroup.com'},
+  {id:'L405',nombre:'PAIN LABS',direccion:'Av. Los Quilmes 835, Bernal Oeste',email:'ZacariasLeone@gmail.com'},
+  {id:'L406',nombre:'Real Quimica',direccion:'Avenida Doctor Arturo Frondizi 10, Fatima',email:'francozurita@realquimica.net'},
+  {id:'L407',nombre:'HIDRAULICA RUBBER PISCINAS S.R.L.',direccion:'Avenida Hipólito Yrigoyen 7473, Banfield',email:'hrubber.hrubber@gmail.com'},
+  {id:'L408',nombre:'INDUSTRIAS MC DEG SOCIEDAD ANONIMA',direccion:'Rio San Pedro 362, General Rodríguez',email:'info@pinturasdama.com.ar'},
+  {id:'L409',nombre:'PENA GASTON',direccion:'IPE, Leonismo Argentino 2945, Caseros',email:''},
+  {id:'L410',nombre:'TORNAU JORGELINA ERCILIA',direccion:'Av. Triunvirato 3525, Billinghurst',email:'infolimcal@gmail.com'},
+  {id:'L411',nombre:'NATURAL MARKET RIO 3',direccion:'Paracas 250, Barracas, Comuna 4, Ciudad Autónoma de Buenos Aires',email:'desanlaboratorio@gmail.com'},
+  {id:'L412',nombre:'inmersia',direccion:'Avenida Corrientes 6139, Chacarita, Ciudad Autónoma de Buenos Aires',email:'ezhequielr@gmail.com'},
+  {id:'L413',nombre:'MOLIFLU ARGENTINA SAS',direccion:'Baliña, Pedro, Doctor 3975, Ciudad Autónoma de Buenos Aires',email:'ventas@moliflu.com'},
+  {id:'L414',nombre:'pintureria',direccion:'Blas Parera 2535, Olivos',email:''},
+  {id:'L415',nombre:'Policemento',direccion:'Rutherford 4709, Area de Promoción El Triángulo',email:''},
+  {id:'L416',nombre:'IPERLAT S.A.',direccion:'Av. Int. Francisco Rabanal 2354, Ciudad Autónoma de Buenos Aires',email:'iperlat@hotmail.com'},
+  {id:'L417',nombre:'DEKO S.R.L.',direccion:'Av. Independencia 2923, Ciudad Autónoma de Buenos Aires',email:'respuestas@dekora.com.ar'},
+  {id:'L418',nombre:'NAFEPLAST S.R.L.',direccion:'Sudamérica 1321, Caseros',email:''},
+  {id:'L419',nombre:'ROTAIR COMPRESORES S.R.L.',direccion:'Aristóteles 1986, 9 de Abril',email:'compras@rotair.com.ar'},
+  {id:'L420',nombre:'ATON MEDICINA S A C I F',direccion:'CED, Choele Choel 1826, Piñeyro',email:'administracion@laboratoriosaton.com.ar'},
+  {id:'L421',nombre:'Motor',direccion:'Bidondo 1252, José León Suárez',email:''},
+  {id:'L422',nombre:'LABORATORIO TECNOLOGICO FRANCES DE ARGENTINA SRL',direccion:'Juan A. Mazza 2312, Boulogne',email:'LTF@LABORATORIOFRANCES.COM.AR'},
+  {id:'L423',nombre:'BLACK LINE 55 DETAIL SHOP',direccion:'Cerrito 2393, San Martín',email:'detailshop55@hotmail.com'},
+  {id:'L424',nombre:'LABORATORIO ALQUIMIA S.A.',direccion:'Fernandez de la Cruz, F., General Av. 1340, Ciudad Autónoma de Buenos Aires',email:'ventas@laboratorioalquimia.com.ar'},
+  {id:'L425',nombre:'QUIMARCO SOCIEDAD ANONIMA INDUSTRIAL Y COMERCIAL',direccion:'Lamadrid 857, Lomas de Zamora',email:'henseler@whiz.com.ar'},
+  {id:'L426',nombre:'DISTRIBUIDORA BPM',direccion:'GLA, Agustín de Elía 49, Ramos Mejía',email:'distribuidorabpm@gmail.com'},
+  {id:'L427',nombre:'DELTA HIGIENE PROFESIONAL S.A.',direccion:'Concejal Tribulato 548, San Miguel',email:'administracion@deltahigiene.com.ar'},
+  {id:'L428',nombre:'FLOWNER S.A.S.',direccion:'Coronel Teodoro García 2123, Lomas del Mirador',email:'a.farinelli@flowner.com.ar'},
+  {id:'L429',nombre:'fabrimotor',direccion:'Bidondo 1252, José León Suárez',email:''},
+  {id:'L430',nombre:'JUCARBE S.A.I.C.',direccion:'Luis María Saavedra 3411, San Andres',email:'monica@jucarbe.com.ar'},
+  {id:'L431',nombre:'Torre',direccion:'Neuquén 5801, Munro',email:''},
+  {id:'L432',nombre:'HNZ SRL',direccion:'Salvador Curutchet 1747, Castelar',email:'Hugo@ixnova.com.ar'},
+  {id:'L433',nombre:'TODO LIMP',direccion:'Portela 3447, Ciudad Autónoma de Buenos Aires',email:'todolimpventas@gmail.com'},
+  {id:'L434',nombre:'OTODIESEL ARGENTINA',direccion:'Avenida General Hornos 1225, Remedios de Escalada',email:'administracion@motordieselarg.com.ar'},
+  {id:'L435',nombre:'Materiales',direccion:'Carlos Calvo 2967, Munro',email:''},
+  {id:'L436',nombre:'Construcciones en Seco & Steel Frame - Distribuidor KNAUF',direccion:'Avenida Bartolomé Mitre 135, Villa Martelli',email:''},
+  {id:'L437',nombre:'INGENIERIA PARA EL DESARROLLO SA (IN DE SA)',direccion:'Castañon 3651, Ciudad Autónoma de Buenos Aires',email:'carolinalilian@hotmail.com'},
+  {id:'L438',nombre:'JARAMA COSMETICA AUTOMOTOR SRL',direccion:'Comuna 4, Ancaste 3650, Ciudad Autónoma de Buenos Aires',email:'compras@jarama.com.ar'},
+  {id:'L439',nombre:'TAPPER SRL',direccion:'Avenida San Martín 4242, Caseros',email:'matiaso@tapperadhesivos.com.ar'},
+  {id:'L440',nombre:'CURTO, DIEGO HERNAN',direccion:'Avenida Amancio Alcorta 1925, Ciudad Autónoma de Buenos Aires',email:'marcosgduhalde@gmail.com'},
+  {id:'L441',nombre:'TRANSPORTE ARIAS',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'luciana@opticalencioni.com'},
+  {id:'L442',nombre:'MAXIMILIANO DEL SANTO',direccion:'Benjamín Franklin 1251, Florida Oeste',email:'administracion@sayojafep.com'},
+  {id:'L443',nombre:'DAYKENT SA',direccion:'Manuel Blanco Encalada 2894, Lanús',email:'info@daykent.com.ar'},
+  {id:'L444',nombre:'AISLANTES TECNOPOR S.R.L.',direccion:'Oscar Natalio Bonavena 1377, Ciudad Autónoma de Buenos Aires',email:'administracion@tecnopor.com.ar'},
+  {id:'L445',nombre:'TELPLAST S.R.L.',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'compras@telplastsrl.com.ar'},
+  {id:'L446',nombre:'LUBRICENTRO MCB',direccion:'Av. Suárez 2590, Ciudad Autónoma de Buenos Aires',email:'mauro_mb2@hotmail.com'},
+  {id:'L447',nombre:'CLAUDIO ROSSI',direccion:'Lisandro de la Torre 1020, Troncos del Talar',email:'rossisport1@hotmail.com'},
+  {id:'L448',nombre:'BUCO SA',direccion:'Haendel, Garin',email:'viviana.costarelli@buco.com.ar'},
+  {id:'L449',nombre:'LABORATORIO KEMEX  SA',direccion:'Calle 7 no90, Fatima, Pilar',email:'kchavez@kemexlab.com'},
+  {id:'L450',nombre:'CAVALLARO, ANTONIO HORACIO',direccion:'Entre Ríos 3139, Martínez',email:'lgflex@hotmail.com'},
+  {id:'L451',nombre:'TEXXOR PINTURAS SRL',direccion:'Av. Olimpo 2007, 9 de Abril',email:'texxorfabrica@yahoo.com.ar'},
+  {id:'L452',nombre:'Molde',direccion:'Azcuénaga 4141, Villa Lynch',email:''},
+  {id:'L453',nombre:'NOVAR-PLAST SRL',direccion:'Suipacha 3939, Billinghurst',email:''},
+  {id:'L454',nombre:'DIVERSEY DE ARGENTINA  S.A',direccion:'Avenida Marquez 970, Villa Bosch',email:'facturaselectronicas@solenis.com'},
+  {id:'L455',nombre:'Daruma',direccion:'Dr. Prof. Pedro Chutro 2735, Ciudad Autónoma de Buenos Aires',email:'agustin@biofilm.com.ar'},
+  {id:'L456',nombre:'DANO S.A',direccion:'Gral. Juan Lavalle 1861, Florida',email:''},
+  {id:'L457',nombre:'PLASTICOS CASTRO HNOS S.A.C.I.',direccion:'San Blas 3974, Ciudad Autónoma de Buenos Aires',email:''},
+  {id:'L458',nombre:'BELL COLOR SRL',direccion:'Av. 101 9 de Julio 4030, Villa Ballester',email:'compras@bellcolorsrl.com.ar'},
+  {id:'L459',nombre:'PRODUCTOS PROTEGER DE EMILIANO BALDONI',direccion:'Estomba 1088, Ciudad Autónoma de Buenos Aires',email:'productosproteger@hotmail.com'},
+  {id:'L460',nombre:'Optica Lencioni',direccion:'Pergamino 3751, Ciudad Autónoma de Buenos Aires',email:'luciana@opticalencioni.com'},
+  {id:'L461',nombre:'CUATRO L S.R.L',direccion:'Yapeyú 1055, Martínez',email:'tgarrido@cuatroele.com.ar'},
+  {id:'L462',nombre:'FAISAN SA',direccion:'León XIII 154, Zeballos',email:'atencionproveedores@faisansa.com.ar'},
+  {id:'L463',nombre:'WEGA',direccion:'Gorriti 620, La Tablada',email:'L.GONZALEZ@WEGA.COM.AR'},
+  {id:'L464',nombre:'SOLVI S.R.L.',direccion:'Sebastián Elcano 2731, Benavidez',email:'jorge@solvi.com.ar'},
+  {id:'L465',nombre:'TRECEX MATERIALES S.R.L.',direccion:'Ferré 2355, Ciudad Autónoma de Buenos Aires',email:'administracion@trecex.com.ar'},
+  {id:'L466',nombre:'DANKAN SRL',direccion:'C. Pacheco 2931, Ciudad Autónoma de Buenos Aires',email:'zoe@nuevosalimentos.com'},
+  {id:'L467',nombre:'INDUSTRIAS MAYA S R L',direccion:'Castro 2374, San Martín',email:'compras@industriasmaya.com.ar'},
+  {id:'L468',nombre:'QUIMAX',direccion:'Avenida Juan Bautista Justo 9642, Ciudad Autónoma de Buenos Aires',email:'quimaxmkt@gmail.com'}
+];
+
+const FLETEROS_FIJOS = [
+  {id:0,nombre:'Anibal José María',  ini:'AJ',patente:'TWC 036',vehiculo:'Ford F-100',        color:'#2a78d6',bg:'#deeeff',text:'#0c3d7a'},
+  {id:1,nombre:'Guillermo Gasalla',  ini:'GG',patente:'FBT 275',vehiculo:'Agrale 6000',       color:'#1a7a3a',bg:'#daf0e0',text:'#1a4d1a'},
+  {id:2,nombre:'Cristian Britez',    ini:'CB',patente:'SBO 000',vehiculo:'Mercedes Benz 608', color:'#c06000',bg:'#fdecd8',text:'#6d3800'},
+  {id:3,nombre:'Marcelo Rovedatti',  ini:'MR',patente:'IAP 475',vehiculo:'Renault Kangoo',    color:'#7a2aae',bg:'#f0e4ff',text:'#4a1a7a'}
+];
+const EXTRA_COLORS = [
+  {color:'#c0392b',bg:'#fdf0ee',text:'#7a1010'},
+  {color:'#16a085',bg:'#e0f5f0',text:'#0a4a3a'},
+  {color:'#8e44ad',bg:'#f0e8fa',text:'#4a1070'},
+  {color:'#d35400',bg:'#fdeee0',text:'#7a2800'}
+];
+const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
+const TIPOS = {
+  propio:        {label:'Entrega de mercadería',       cls:'t-propio',        icon:'🚚'},
+  externo:       {label:'Retiro en proveedor',          cls:'t-externo',       icon:'🚛'},
+  retiro:        {label:'Retiro de devoluciones',       cls:'t-retiro',        icon:'📦'},
+  muestra:       {label:'Envío/Retiro de muestras',     cls:'t-muestra',       icon:'🧪'},
+  visita:        {label:'Visita comercial/producción',  cls:'t-visita',        icon:'🤝'},
+  'retiro-planta':{label:'Retiro de mercadería en FADEP',cls:'t-retiro-planta',icon:'🏭'},
+  docum:         {label:'Envío de documentación',       cls:'t-docum',         icon:'📄'},
+  traslado:      {label:'Traslado de personas',         cls:'t-traslado',      icon:'🧑'},
+  alimentos:     {label:'Insumos/diligencias',          cls:'t-alimentos',     icon:'🔧'},
+  otros:         {label:'Otros',                        cls:'t-otros',         icon:'🔩'}
+};
+
+// Estado
+let fleteros = [...FLETEROS_FIJOS];
+let fleteroExtra = [];
+let planData = {};
+let standbyData = [];
+let weekStart = getMonday(new Date());
+let calMonth = new Date();
+let idC = 1000;
+let libEditId = null;
+let editDestinoId = null;
+let editStandbyId = null;
+let dragItem = null, dragSrc = null;
+let leafletMap = null, mapaMarkers = [], mapaLines = [], mapaInited = false;
+let mapaWeekStart = getMonday(new Date());
+let mapaFiltroFid = null;
+
+// Utils
+function getMonday(d){const dt=new Date(d);dt.setHours(0,0,0,0);const dw=dt.getDay();dt.setDate(dt.getDate()+(dw===0?-6:1-dw));return dt}
+function wKey(d){return getMonday(d).toISOString().slice(0,10)}
+function dayDate(di){const d=new Date(weekStart);d.setDate(d.getDate()+di);return d}
+function fmt(d){return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function isToday(d){return d.toDateString()===new Date().toDateString()}
+function mk(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;return e}
+
+function getWeek(){
+  const k=wKey(weekStart);
+  if(!planData[k]){
+    planData[k]={pool:[]};
+    fleteros.forEach(f=>{if(!planData[k][f.id])planData[k][f.id]={0:[],1:[],2:[],3:[],4:[]}});
+  }
+  return planData[k];
+}
+
+// Inicializar slots para todos los fleteros en la semana activa
+function ensureSlots(wd){
+  fleteros.forEach(f=>{if(!wd[f.id])wd[f.id]={0:[],1:[],2:[],3:[],4:[]}});
+}
+
+// Persistencia
+function save(){
+  try{
+    localStorage.setItem('fadep_plan',JSON.stringify(planData));
+    localStorage.setItem('fadep_standby',JSON.stringify(standbyData));
+    localStorage.setItem('fadep_extra',JSON.stringify(fleteroExtra));
+  }catch(e){}
+}
+function saveLib(){try{localStorage.setItem('fadep_lib',JSON.stringify(LIBRETA))}catch(e){}}
+function load(){
+  try{
+    const p=localStorage.getItem('fadep_plan');if(p)planData=JSON.parse(p);
+    const s=localStorage.getItem('fadep_standby');if(s)standbyData=JSON.parse(s);
+    const ex=localStorage.getItem('fadep_extra');
+    if(ex){
+      fleteroExtra=JSON.parse(ex);
+      fleteroExtra.forEach(f=>{if(!fleteros.find(x=>x.id===f.id))fleteros.push(f);});
+    }
+    const l=localStorage.getItem('fadep_lib');if(l)LIBRETA=JSON.parse(l);
+  }catch(e){}
+}
+
+// Tabs
+function switchTab(t){
+  ['matriz','calendario','libreta','mapa'].forEach(x=>{
+    document.getElementById('panel-'+x).classList.toggle('active',x===t);
+  });
+  document.querySelectorAll('.tab').forEach((el,i)=>{
+    el.classList.toggle('active',['matriz','calendario','libreta','mapa'][i]===t);
+  });
+  if(t==='calendario')renderCal();
+  if(t==='libreta')renderLibreta('');
+  if(t==='mapa')initMapa();
+}
+
+// Select de fleteros en formulario
+function poblarFleteroSelect(selId){
+  const sel=document.getElementById(selId);
+  sel.innerHTML='';
+  fleteros.forEach(f=>{const o=document.createElement('option');o.value=f.id;o.textContent=f.nombre;sel.appendChild(o);});
+}
+
+// Stats
+function renderStats(){
+  const wd=getWeek(); let total=0,dias=new Set();
+  fleteros.forEach(f=>{for(let d=0;d<5;d++){const n=(wd[f.id]&&wd[f.id][d]||[]).length;total+=n;if(n)dias.add(d)}});
+  document.getElementById('statsRow').innerHTML=[
+    {v:total,l:'Destinos asignados'},{v:dias.size,l:'Días con actividad'},
+    {v:wd.pool.length,l:'Sin asignar (pool)'},{v:standbyData.length,l:'Stand by'}
+  ].map(r=>`<div class="stat-card"><div class="stat-val">${r.v}</div><div class="stat-lbl">${r.l}</div></div>`).join('');
+}
+
+// Matriz
+function renderMatriz(){
+  renderStats();
+  const wd=getWeek(); ensureSlots(wd);
+  const s=getMonday(weekStart),e=new Date(s);e.setDate(e.getDate()+4);
+  document.getElementById('weekDisplay').textContent=`Semana ${fmt(s)} — ${fmt(e)}`;
+  const g=document.getElementById('matrizGrid'); g.innerHTML='';
+
+  // Headers
+  const h0=mk('div','cell-h left');h0.textContent='Conductor';g.appendChild(h0);
+  DIAS.forEach((_,di)=>{
+    const dt=dayDate(di),h=mk('div','cell-h');
+    h.innerHTML=`<div class="day-h"><span class="day-name${isToday(dt)?' today':''}">${DIAS[di]}</span><span class="day-date">${fmt(dt)}</span></div>`;
+    g.appendChild(h);
+  });
+
+  // Filas de fleteros (fijos + eventuales)
+  fleteros.forEach((f,fi)=>{
+    const isLast = fi===fleteros.length-1;
+    const fc=mk('div','flet-cell'+(isLast?' last':''));
+    fc.style.borderBottom=isLast?'none':'1px solid #eeeeea';
+    let extraBtn='';
+    // Sin botón eliminar en supervisión
+    fc.innerHTML=`<div class="flet-av" style="background:${f.bg};color:${f.text}">${f.ini}</div>
+      <div style="flex:1"><div class="flet-name">${esc(f.nombre)}</div>
+      <div class="flet-veh">${esc(f.vehiculo||'')}</div>
+      <div class="flet-pat">${esc(f.patente||'')}</div></div>${extraBtn}`;
+    g.appendChild(fc);
+    DIAS.forEach((_,di)=>{
+      const cell=mk('div','drop-zone'+(isLast?' last-row':''));
+      cell.style.borderBottom=isLast?'none':'1px solid #eeeeea';
+      cell.dataset.fid=f.id; cell.dataset.di=di;
+      cell.addEventListener('dragover',e2=>{e2.preventDefault();cell.classList.add('drag-over')});
+      cell.addEventListener('dragleave',()=>cell.classList.remove('drag-over'));
+      cell.addEventListener('drop',e2=>{e2.preventDefault();dropToCell(e2,f.id,di)});
+      (wd[f.id]&&wd[f.id][di]||[]).forEach(dest=>cell.appendChild(makeTag(dest,f.id,di)));
+      // Sin botón agregar en supervisión
+      g.appendChild(cell);
+    });
+  });
+
+  // Fila para agregar conductor eventual
+  const addRow=mk('div','flet-cell add-row last');
+  addRow.style.borderBottom='none';
+  addRow.style.display='none';
+  addRow.onclick=null;
+  addRow.innerHTML=`<div class="flet-av" style="background:#f0f0ec;color:#bbb;border:1.5px dashed #ccc;font-size:18px;font-weight:300">＋</div>
+    <div><div class="flet-name" style="color:#aaa;font-weight:500">Agregar conductor eventual</div>
+    <div class="flet-veh" style="color:#ccc">Clic para agregar</div></div>`;
+  g.appendChild(addRow);
+  DIAS.forEach(()=>{
+    const c=mk('div','drop-zone add-row-cell last-row');c.style.borderBottom='none';g.appendChild(c);
+  });
+
+  renderPool();
+  renderStandby();
+}
+
+// Tags
+function makeTag(dest,fid,di){
+  const f=fleteros.find(x=>x.id===fid)||fleteros[0];
+  const tp=TIPOS[dest.tipo]||TIPOS.propio;
+  const tag=mk('div','tag '+tp.cls);
+  tag.draggable=false;tag.dataset.id=dest.id;
+  const sub=(dest.tipo==='externo'&&dest.transp)?dest.transp:f.nombre.split(' ')[0];
+  tag.innerHTML=`<div class="tag-inner">
+    <div class="tag-name">${esc(dest.nombre)}</div>
+    <div class="tag-sub">${tp.icon} ${esc(sub)}${dest.envio?' · '+dest.envio.slice(0,22):''}</div>
+  </div>`;
+  tag.addEventListener('dragstart',e=>{dragItem={id:dest.id,fid,di};dragSrc='cell';setTimeout(()=>tag.style.opacity='.4',0);e.dataTransfer.effectAllowed='move';});
+  tag.addEventListener('dragend',()=>tag.style.opacity='1');
+  return tag;
+}
+
+function makePoolTag(dest){
+  const tp=TIPOS[dest.tipo]||TIPOS.propio;
+  const tag=mk('div','tag '+tp.cls);
+  tag.draggable=false;tag.dataset.id=dest.id;
+  tag.innerHTML=`<div class="tag-inner">
+    <div class="tag-name">${esc(dest.nombre)}</div>
+    <div class="tag-sub">${tp.icon} ${tp.label}</div>
+  </div>`;
+  tag.addEventListener('dragstart',e=>{dragItem={id:dest.id,fromPool:true,dest};dragSrc='pool';setTimeout(()=>tag.style.opacity='.4',0);e.dataTransfer.effectAllowed='move';});
+  tag.addEventListener('dragend',()=>tag.style.opacity='1');
+  return tag;
+}
+
+function makeStandbyTag(dest){
+  const tp=TIPOS[dest.tipo]||TIPOS.propio;
+  const tag=mk('div','tag t-standby');
+  tag.draggable=false;tag.dataset.id=dest.id;
+  tag.innerHTML=`<div class="tag-inner">
+    <div class="tag-name">${esc(dest.nombre)}</div>
+    <div class="tag-sub">🔴 ${dest.motivo?dest.motivo.slice(0,30):'Stand by'}${dest.envio?' · '+dest.envio.slice(0,18):''}</div>
+  </div>`;
+  tag.addEventListener('dragstart',e=>{dragItem={id:dest.id,fromStandby:true,dest};dragSrc='standby';setTimeout(()=>tag.style.opacity='.4',0);e.dataTransfer.effectAllowed='move';});
+  tag.addEventListener('dragend',()=>tag.style.opacity='1');
+  return tag;
+}
+
+// Drops
+function dropToCell(e,fid,di){
+  e.currentTarget.classList.remove('drag-over');
+  if(!dragItem)return;
+  const wd=getWeek();ensureSlots(wd);
+  let dest;
+  if(dragSrc==='pool'){
+    dest=dragItem.dest;dest.fid=fid;
+    wd.pool=wd.pool.filter(x=>x.id!==dest.id);
+  } else if(dragSrc==='standby'){
+    dest=dragItem.dest;dest.fid=fid;
+    standbyData=standbyData.filter(x=>x.id!==dest.id);
+  } else {
+    const sl=(wd[dragItem.fid]&&wd[dragItem.fid][dragItem.di])||[];
+    const idx=sl.findIndex(x=>x.id===dragItem.id);
+    if(idx===-1)return;
+    [dest]=sl.splice(idx,1);dest.fid=fid;
+  }
+  if(!wd[fid])wd[fid]={0:[],1:[],2:[],3:[],4:[]};
+  wd[fid][di].push(dest);
+  dragItem=null;save();renderMatriz();
+}
+
+function dropPool(e){
+  e.currentTarget.classList.remove('drag-over');
+  if(!dragItem||dragSrc==='pool')return;
+  const wd=getWeek();
+  if(dragSrc==='cell'){
+    const sl=(wd[dragItem.fid]&&wd[dragItem.fid][dragItem.di])||[];
+    const idx=sl.findIndex(x=>x.id===dragItem.id);
+    if(idx===-1)return;
+    const[dest]=sl.splice(idx,1);wd.pool.push(dest);
+  } else if(dragSrc==='standby'){
+    const dest=dragItem.dest;
+    standbyData=standbyData.filter(x=>x.id!==dest.id);
+    wd.pool.push(dest);
+  }
+  dragItem=null;save();renderMatriz();
+}
+
+function dropToStandby(e){
+  e.currentTarget.classList.remove('drag-over');
+  if(!dragItem||dragSrc==='standby')return;
+  const wd=getWeek();
+  let dest;
+  if(dragSrc==='cell'){
+    const sl=(wd[dragItem.fid]&&wd[dragItem.fid][dragItem.di])||[];
+    const idx=sl.findIndex(x=>x.id===dragItem.id);
+    if(idx===-1)return;
+    [dest]=sl.splice(idx,1);
+  } else if(dragSrc==='pool'){
+    dest=dragItem.dest;wd.pool=wd.pool.filter(x=>x.id!==dest.id);
+  }
+  standbyData.push(dest);
+  dragItem=null;save();renderMatriz();
+}
+
+function renderPool(){
+  const wd=getWeek();const pz=document.getElementById('poolZone');pz.innerHTML='';
+  if(!wd.pool.length){pz.innerHTML='<span style="color:#ccc;font-size:12px;font-style:italic">Pool vacío</span>';return;}
+  wd.pool.forEach(d=>pz.appendChild(makePoolTag(d)));
+}
+
+function renderStandby(){
+  const sz=document.getElementById('standbyZone');sz.innerHTML='';
+  if(!standbyData.length){sz.innerHTML='<span style="color:#daa;font-size:12px;font-style:italic">Sin pedidos en stand by</span>';return;}
+  standbyData.forEach(d=>sz.appendChild(makeStandbyTag(d)));
+}
+
+function quitarDestino(e,id,fid,di){e.stopPropagation();const wd=getWeek();if(wd[fid]&&wd[fid][di])wd[fid][di]=wd[fid][di].filter(x=>x.id!==id);save();renderMatriz();}
+function quitarPool(e,id){e.stopPropagation();const wd=getWeek();wd.pool=wd.pool.filter(x=>x.id!==id);save();renderPool();}
+function quitarStandby(e,id){e.stopPropagation();if(!confirm('¿Eliminar este pedido del stand by?'))return;standbyData=standbyData.filter(x=>x.id!==id);save();renderStandby();}
+
+function prevWeek(){weekStart.setDate(weekStart.getDate()-7);renderMatriz()}
+function nextWeek(){weekStart.setDate(weekStart.getDate()+7);renderMatriz()}
+function goToday(){weekStart=getMonday(new Date());renderMatriz()}
+
+// Modal destino (programados)
+function abrirModalDestino(fid,di,editId){
+  poblarFleteroSelect('fFletero');
+  editDestinoId=editId||null;
+  const title=editId?'Editar destino':'Agregar destino';
+  document.getElementById('modalDestinoTitle').textContent=title;
+  document.getElementById('btnConfirmarDestino').textContent=editId?'Guardar cambios':'Agregar';
+  if(editId){
+    const wd=getWeek();
+    const dest=(wd[fid]&&wd[fid][di]||[]).find(x=>x.id===editId);
+    if(!dest)return;
+    document.getElementById('fNombre').value=dest.nombre||'';
+    document.getElementById('fDir').value=dest.dir||'';
+    document.getElementById('fEmail').value=dest.email||'';
+    document.getElementById('fEnvio').value=dest.envio||'';
+    document.getElementById('fNotas').value=dest.notas||'';
+    document.getElementById('fTransp').value=dest.transp||'';
+    document.getElementById('fTipo').value=dest.tipo||'propio';
+    document.getElementById('fFletero').value=dest.fid!==undefined?dest.fid:fid;
+    document.getElementById('fDia').value=di;
+  } else {
+    ['fNombre','fDir','fEmail','fEnvio','fNotas','fTransp'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('fTipo').value='propio';
+    document.getElementById('fFletero').value=fid!==undefined?fid:0;
+    document.getElementById('fDia').value=di!==undefined?di:'-1';
+  }
+  document.getElementById('acList').classList.remove('open');
+  document.getElementById('modalDestino').classList.add('open');
+  setTimeout(()=>document.getElementById('fNombre').focus(),100);
+}
+function openAddModal(){abrirModalDestino(0,-1);}
+function closeModalDestino(){document.getElementById('modalDestino').classList.remove('open');document.getElementById('acList').classList.remove('open');}
+
+function confirmarDestino(){
+  const nombre=document.getElementById('fNombre').value.trim();
+  if(!nombre){alert('Ingresá el nombre del destino');return}
+  const tipo=document.getElementById('fTipo').value;
+  const fid=parseInt(document.getElementById('fFletero').value);
+  const di=parseInt(document.getElementById('fDia').value);
+  const dest={
+    id:editDestinoId||idC++, nombre,
+    dir:document.getElementById('fDir').value.trim(),
+    email:document.getElementById('fEmail').value.trim(),
+    tipo, fid,
+    transp:document.getElementById('fTransp').value.trim(),
+    envio:document.getElementById('fEnvio').value.trim(),
+    notas:document.getElementById('fNotas').value.trim()
+  };
+  const wd=getWeek();ensureSlots(wd);
+  if(editDestinoId){
+    fleteros.forEach(f=>{for(let d=0;d<5;d++){if(wd[f.id]&&wd[f.id][d])wd[f.id][d]=wd[f.id][d].filter(x=>x.id!==editDestinoId)}});
+    wd.pool=wd.pool.filter(x=>x.id!==editDestinoId);
+    standbyData=standbyData.filter(x=>x.id!==editDestinoId);
+  }
+  if(di===-1){wd.pool.push(dest);}
+  else{if(!wd[fid])wd[fid]={0:[],1:[],2:[],3:[],4:[]};wd[fid][di].push(dest);}
+  closeModalDestino();save();renderMatriz();
+}
+
+// Modal stand by
+function openStandbyModal(){abrirModalStandby();}
+function abrirModalStandby(editId){
+  editStandbyId=editId||null;
+  document.getElementById('modalStandbyTitle').textContent=editId?'Editar pedido en stand by':'Agregar a stand by';
+  document.getElementById('btnConfirmarSb').textContent=editId?'Guardar cambios':'Agregar a stand by';
+  if(editId){
+    const dest=standbyData.find(x=>x.id===editId);if(!dest)return;
+    document.getElementById('sbNombre').value=dest.nombre||'';
+    document.getElementById('sbDir').value=dest.dir||'';
+    document.getElementById('sbEmail').value=dest.email||'';
+    document.getElementById('sbEnvio').value=dest.envio||'';
+    document.getElementById('sbMotivo').value=dest.motivo||'';
+    document.getElementById('sbNotas').value=dest.notas||'';
+    document.getElementById('sbTipo').value=dest.tipo||'propio';
+  } else {
+    ['sbNombre','sbDir','sbEmail','sbEnvio','sbMotivo','sbNotas'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('sbTipo').value='propio';
+  }
+  document.getElementById('acListSb').classList.remove('open');
+  document.getElementById('modalStandby').classList.add('open');
+  setTimeout(()=>document.getElementById('sbNombre').focus(),100);
+}
+function abrirModalStandbyEdit(id){abrirModalStandby(id);}
+function closeStandbyModal(){document.getElementById('modalStandby').classList.remove('open');document.getElementById('acListSb').classList.remove('open');}
+
+function confirmarStandby(){
+  const nombre=document.getElementById('sbNombre').value.trim();
+  if(!nombre){alert('Ingresá el nombre del destino');return}
+  const dest={
+    id:editStandbyId||idC++, nombre,
+    dir:document.getElementById('sbDir').value.trim(),
+    email:document.getElementById('sbEmail').value.trim(),
+    tipo:document.getElementById('sbTipo').value,
+    envio:document.getElementById('sbEnvio').value.trim(),
+    motivo:document.getElementById('sbMotivo').value.trim(),
+    notas:document.getElementById('sbNotas').value.trim(),
+    fid:0
+  };
+  if(editStandbyId){standbyData=standbyData.filter(x=>x.id!==editStandbyId);}
+  standbyData.push(dest);
+  closeStandbyModal();save();renderStandby();renderStats();
+}
+
+// Autocomplete destino
+function acSearch(q){
+  const list=document.getElementById('acList');
+  if(q.length<2){list.classList.remove('open');return}
+  const m=LIBRETA.filter(c=>c.nombre.toLowerCase().includes(q.toLowerCase())).slice(0,8);
+  if(!m.length){list.classList.remove('open');return}
+  list.innerHTML=m.map(c=>`<div class="ac-item" onclick="acSelect('${c.id}')"><div class="ac-name">${esc(c.nombre)}</div><div class="ac-addr">${esc(c.direccion)}</div></div>`).join('');
+  list.classList.add('open');
+}
+function acSelect(lid){
+  const c=LIBRETA.find(x=>x.id===lid);if(!c)return;
+  document.getElementById('fNombre').value=c.nombre;
+  document.getElementById('fDir').value=c.direccion;
+  document.getElementById('fEmail').value=c.email;
+  document.getElementById('acList').classList.remove('open');
+}
+
+// Autocomplete standby
+function acSearchSb(q){
+  const list=document.getElementById('acListSb');
+  if(q.length<2){list.classList.remove('open');return}
+  const m=LIBRETA.filter(c=>c.nombre.toLowerCase().includes(q.toLowerCase())).slice(0,8);
+  if(!m.length){list.classList.remove('open');return}
+  list.innerHTML=m.map(c=>`<div class="ac-item" onclick="acSelectSb('${c.id}')"><div class="ac-name">${esc(c.nombre)}</div><div class="ac-addr">${esc(c.direccion)}</div></div>`).join('');
+  list.classList.add('open');
+}
+function acSelectSb(lid){
+  const c=LIBRETA.find(x=>x.id===lid);if(!c)return;
+  document.getElementById('sbNombre').value=c.nombre;
+  document.getElementById('sbDir').value=c.direccion;
+  document.getElementById('sbEmail').value=c.email;
+  document.getElementById('acListSb').classList.remove('open');
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#modalDestino .ac-wrap'))document.getElementById('acList').classList.remove('open');
+  if(!e.target.closest('#modalStandby .ac-wrap'))document.getElementById('acListSb').classList.remove('open');
+});
+
+// Ficha detalle
+function openFicha(dest,f,dt){
+  const tp=TIPOS[dest.tipo]||TIPOS.propio;
+  const badge=document.getElementById('fichaBadge');
+  badge.textContent=tp.icon+' '+tp.label;badge.className='ficha-badge '+tp.cls;
+  document.getElementById('fichaNombre').textContent=dest.nombre;
+  const conductor=(dest.tipo==='externo')?(dest.transp||'Flete externo'):dest.tipo==='retiro-planta'?'Retiro en planta (cliente)':f?`${f.nombre} · ${f.vehiculo} · ${f.patente}`:'—';
+  const rows=[
+    {icon:'📅',label:'Fecha',val:dt.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})},
+    {icon:'🚗',label:'Conductor / Transporte',val:conductor},
+    dest.transp&&dest.tipo!=='externo'?{icon:'🚛',label:'Transportista',val:dest.transp}:null,
+    dest.dir?{icon:'📍',label:'Dirección',val:dest.dir}:null,
+    dest.email?{icon:'✉',label:'Email',val:dest.email}:null,
+    dest.envio?{icon:'📦',label:'Qué enviamos / retiramos',val:dest.envio}:null,
+    dest.notas?{icon:'📝',label:'Notas',val:dest.notas}:null,
+  ].filter(Boolean);
+  document.getElementById('fichaBody').innerHTML=rows.map(r=>`<div class="ficha-row"><span class="ficha-icon">${r.icon}</span><div><div class="ficha-label">${r.label}</div><div class="ficha-val">${esc(r.val)}</div></div></div>`).join('');
+  document.getElementById('modalFicha').classList.add('open');
+}
+function closeFicha(){document.getElementById('modalFicha').classList.remove('open');}
+
+// Calendario
+function prevMonth(){calMonth.setMonth(calMonth.getMonth()-1);renderCal()}
+function nextMonth(){calMonth.setMonth(calMonth.getMonth()+1);renderCal()}
+function renderCal(){
+  const m=calMonth.getMonth(),y=calMonth.getFullYear();
+  document.getElementById('calTitle').textContent=new Date(y,m,1).toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+  const g=document.getElementById('calGrid');g.innerHTML='';
+  ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].forEach(d=>{const h=mk('div','cal-dh');h.textContent=d;g.appendChild(h);});
+  const first=new Date(y,m,1);let dow=first.getDay();dow=dow===0?6:dow-1;
+  const dim=new Date(y,m+1,0).getDate(),prevDim=new Date(y,m,0).getDate();
+  const total=dow+dim,cells=total+(7-total%7)%7;
+  for(let i=0;i<cells;i++){
+    const cell=mk('div','cal-cell');let dn,mo=0;
+    if(i<dow){dn=prevDim-dow+i+1;mo=-1;cell.classList.add('other')}
+    else if(i>=dow+dim){dn=i-dow-dim+1;mo=1;cell.classList.add('other')}
+    else{dn=i-dow+1}
+    const dt=new Date(y,m+mo,dn);
+    if(dt.toDateString()===new Date().toDateString())cell.classList.add('today-cal');
+    const num=mk('div','cal-num');num.textContent=dn;cell.appendChild(num);
+    const dw=dt.getDay();
+    if(mo===0&&dw>=1&&dw<=5){
+      const di=dw-1,k=wKey(getMonday(dt)),wd=planData[k];
+      if(wd){fleteros.forEach(f=>{(wd[f.id]&&wd[f.id][di]||[]).forEach(dest=>{
+        const tp=TIPOS[dest.tipo]||TIPOS.propio;
+        const ctag=mk('div','cal-tag '+tp.cls);
+        ctag.textContent=tp.icon+' '+(dest.nombre.length>16?dest.nombre.slice(0,14)+'…':dest.nombre);
+        ctag.onclick=()=>openFicha(dest,f,dt);cell.appendChild(ctag);
+      });});}
+    }
+    g.appendChild(cell);
+  }
+}
+
+// Libreta
+function renderLibreta(q){
+  const f=LIBRETA.filter(c=>!q||c.nombre.toLowerCase().includes(q.toLowerCase())||(c.direccion||'').toLowerCase().includes(q.toLowerCase()));
+  document.getElementById('libCount').textContent=`${f.length} destinos`;
+  document.getElementById('libGrid').innerHTML=f.map(c=>`<div class="lib-card">
+    <div class="lib-card-name">${esc(c.nombre)}</div>
+    <div class="lib-card-addr">📍 ${esc(c.direccion)||'—'}</div>
+    ${c.email?`<div class="lib-card-email">✉ ${esc(c.email)}</div>`:''}</div>`).join('');
+}
+function openLibModal(){libEditId=null;document.getElementById('libTitle').textContent='Nuevo destino';['lNombre','lDir','lEmail'].forEach(id=>document.getElementById(id).value='');document.getElementById('modalLibreta').classList.add('open');setTimeout(()=>document.getElementById('lNombre').focus(),100);}
+function editLib(id){const c=LIBRETA.find(x=>x.id===id);if(!c)return;libEditId=id;document.getElementById('libTitle').textContent='Editar destino';document.getElementById('lNombre').value=c.nombre;document.getElementById('lDir').value=c.direccion;document.getElementById('lEmail').value=c.email;document.getElementById('modalLibreta').classList.add('open');}
+function deleteLib(id){if(!confirm('¿Eliminar este destino de la libreta?'))return;LIBRETA=LIBRETA.filter(x=>x.id!==id);saveLib();renderLibreta(document.getElementById('libSearch').value);}
+function closeLibModal(){document.getElementById('modalLibreta').classList.remove('open');}
+function confirmarLib(){const nombre=document.getElementById('lNombre').value.trim();if(!nombre){alert('Ingresá un nombre');return}if(libEditId){const c=LIBRETA.find(x=>x.id===libEditId);c.nombre=nombre;c.direccion=document.getElementById('lDir').value.trim();c.email=document.getElementById('lEmail').value.trim();}else{LIBRETA.push({id:'L'+Date.now(),nombre,direccion:document.getElementById('lDir').value.trim(),email:document.getElementById('lEmail').value.trim()});}closeLibModal();saveLib();renderLibreta(document.getElementById('libSearch').value);}
+
+// Conductor eventual
+function openModalFletero(){['fltNombre','fltVehiculo','fltPatente'].forEach(id=>document.getElementById(id).value='');document.getElementById('modalFletero').classList.add('open');setTimeout(()=>document.getElementById('fltNombre').focus(),100);}
+function closeModalFletero(){document.getElementById('modalFletero').classList.remove('open');}
+function confirmarFletero(){
+  const nombre=document.getElementById('fltNombre').value.trim();
+  if(!nombre){alert('Ingresá el nombre del conductor');return}
+  const col=EXTRA_COLORS[fleteroExtra.length%EXTRA_COLORS.length];
+  const ini=nombre.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const newId=100+fleteroExtra.length;
+  const f={id:newId,nombre,ini,patente:document.getElementById('fltPatente').value.trim(),vehiculo:document.getElementById('fltVehiculo').value.trim(),...col,extra:true};
+  fleteroExtra.push(f);
+  if(!fleteros.find(x=>x.id===newId))fleteros.push(f);
+  const wd=getWeek();if(!wd[newId])wd[newId]={0:[],1:[],2:[],3:[],4:[]};
+  closeModalFletero();save();poblarFleteroSelect('fFletero');renderMatriz();
+}
+function eliminarFleteroExtra(id){
+  if(!confirm('¿Eliminar este conductor eventual? Sus destinos van al pool.'))return;
+  const wd=getWeek();
+  if(wd[id]){for(let d=0;d<5;d++){(wd[id][d]||[]).forEach(dest=>wd.pool.push(dest));}delete wd[id];}
+  fleteroExtra=fleteroExtra.filter(f=>f.id!==id);
+  fleteros=fleteros.filter(f=>f.id!==id||!f.extra);
+  save();poblarFleteroSelect('fFletero');renderMatriz();
+}
+
+// Exportar
+function exportTxt(){
+  const wd=getWeek();const s=getMonday(weekStart),e=new Date(s);e.setDate(e.getDate()+4);
+  let txt=`FADEP S.A. — Plan logístico semanal\nSemana: ${fmt(s)} al ${fmt(e)}\nGenerado: ${new Date().toLocaleString('es-AR')}\n${'═'.repeat(50)}\n`;
+  fleteros.forEach(f=>{
+    let hay=false;for(let d=0;d<5;d++){if((wd[f.id]&&wd[f.id][d]||[]).length)hay=true;}if(!hay)return;
+    txt+=`\n▶ ${f.nombre} | ${f.vehiculo||''} | ${f.patente||''}\n`;
+    DIAS.forEach((dia,di)=>{const ds=(wd[f.id]&&wd[f.id][di])||[];if(!ds.length)return;
+      txt+=`  ${dia} ${fmt(dayDate(di))}:\n`;
+      ds.forEach(d=>{const tp=TIPOS[d.tipo]||TIPOS.propio;txt+=`    · [${tp.label}] ${d.nombre}\n`;if(d.transp)txt+=`      Transportista: ${d.transp}\n`;if(d.dir)txt+=`      Dirección: ${d.dir}\n`;if(d.envio)txt+=`      Envío: ${d.envio}\n`;if(d.notas)txt+=`      Notas: ${d.notas}\n`;});
+    });
+  });
+  if(standbyData.length){txt+=`\nSTAND BY:\n`;standbyData.forEach(d=>{txt+=`  · ${d.nombre} | ${d.motivo||''}\n`;});}
+  const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`FADEP_plan_${wKey(weekStart)}.txt`;a.click();
+}
+
+// Publicar
+
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbyh-dZGFgsbuWMr4sSN2iYNvsaO8MGGSKFeAxDrsdEn5ioUgFWSkxdXpNO_GozD079f/exec';
+
+async function publicarSemana(){
+  const btn=document.getElementById('btnPublicar');btn.textContent='⏳ Publicando...';btn.disabled=true;
+  try{await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(planData)});
+    btn.textContent='✅ Publicado';btn.style.background='#1a7a3a';btn.style.borderColor='#1a7a3a';
+  }catch(err){btn.textContent='❌ Error';btn.style.background='#c0392b';btn.style.borderColor='#c0392b';}
+  setTimeout(()=>{btn.textContent='🌐 Publicar';btn.style.background='';btn.style.borderColor='';btn.disabled=false;},3000);
+}
+
+// Mapa
+function mapaWeek(dir){mapaWeekStart=new Date(mapaWeekStart);mapaWeekStart.setDate(mapaWeekStart.getDate()+dir*7);actualizarMapaLabel();renderMapa();}
+function mapaGoToday(){mapaWeekStart=getMonday(new Date());actualizarMapaLabel();const dw=new Date().getDay();if(dw>=1&&dw<=5)document.getElementById('mapaDia').value=dw-1;renderMapa();}
+function actualizarMapaLabel(){const s=getMonday(mapaWeekStart),e=new Date(s);e.setDate(e.getDate()+4);document.getElementById('mapaWeekLabel').textContent=`Semana ${fmt(s)} — ${fmt(e)}`;}
+function buildFletBtns(){const wrap=document.getElementById('mapaFletBtns');wrap.innerHTML='';fleteros.forEach(f=>{const b=mk('button','flet-btn');b.textContent=f.nombre.split(' ')[0];b.style.borderColor=f.color;b.style.color=mapaFiltroFid===f.id?'#fff':f.color;b.style.background=mapaFiltroFid===f.id?f.color:'#fff';b.onclick=()=>{mapaFiltroFid=(mapaFiltroFid===f.id)?null:f.id;buildFletBtns();renderMapa();};wrap.appendChild(b);});}
+function mapaFiltroTodos(){mapaFiltroFid=null;buildFletBtns();renderMapa();}
+
+const geoCache={};
+async function geocode(address){
+  const key=address.trim().toLowerCase();if(geoCache[key]!==undefined)return geoCache[key];
+  try{const q=encodeURIComponent(address+', Buenos Aires, Argentina');const res=await fetch('https://nominatim.openstreetmap.org/search?q='+q+'&format=json&limit=1&countrycodes=ar',{headers:{'Accept-Language':'es','User-Agent':'FADEP-Logistica/1.0'}});
+    const data=await res.json();if(data&&data[0]){const coords=[parseFloat(data[0].lat),parseFloat(data[0].lon)];geoCache[key]=coords;return coords;}
+    geoCache[key]=null;return null;
+  }catch(e){geoCache[key]=null;return null;}
+}
+
+function initMapa(){
+  mapaWeekStart=new Date(weekStart);actualizarMapaLabel();buildFletBtns();
+  const dw=new Date().getDay();if(dw>=1&&dw<=5)document.getElementById('mapaDia').value=dw-1;
+  if(!mapaInited){
+    mapaInited=true;
+    const script=document.createElement('script');script.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    script.onload=()=>{
+      leafletMap=L.map('leafletMap',{center:[-34.5403538,-58.5315228],zoom:12});
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:19}).addTo(leafletMap);
+      const fi=L.divIcon({html:'<div style="background:#1a1a18;color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)">🏭</div>',className:'',iconSize:[34,34],iconAnchor:[17,17]});
+      L.marker([-34.5403538,-58.5315228],{icon:fi}).addTo(leafletMap).bindPopup('<strong>FADEP S.A.</strong><br>Luis María Drago 5608, Nave 4<br>San Martín, Pcia. de Buenos Aires');
+      renderMapa();
+    };document.head.appendChild(script);
+  }else{renderMapa();}
+}
+
+async function renderMapa(){
+  if(!leafletMap)return;
+  const di=parseInt(document.getElementById('mapaDia').value);
+  const k=wKey(getMonday(mapaWeekStart));const wd=planData[k];
+  mapaMarkers.forEach(m=>leafletMap.removeLayer(m));mapaLines.forEach(l=>leafletMap.removeLayer(l));mapaMarkers=[];mapaLines=[];
+  let destinosDia=[];
+  if(wd){fleteros.forEach(f=>{if(mapaFiltroFid!==null&&f.id!==mapaFiltroFid)return;(wd[f.id]&&wd[f.id][di]||[]).forEach(dest=>{if(dest.dir&&dest.dir.trim())destinosDia.push({dest,f});});});}
+  const dt=new Date(getMonday(mapaWeekStart));dt.setDate(dt.getDate()+di);
+  document.getElementById('mapaStats').innerHTML=`<div class="map-stat">📅 <span>${DIAS[di]} ${fmt(dt)}</span></div><div class="map-stat">📍 <strong>${destinosDia.length}</strong> destinos</div>${mapaFiltroFid!==null?`<div class="map-stat">🚗 ${fleteros.find(f=>f.id===mapaFiltroFid)?.nombre||''}</div>`:''}`;
+  document.getElementById('mapaEmpty').style.display=destinosDia.length===0?'flex':'none';
+  if(destinosDia.length===0)return;
+  const bounds=[];const porFletero={};
+  for(const {dest,f} of destinosDia){
+    const coords=await geocode(dest.dir);if(!coords)continue;bounds.push(coords);
+    if(!porFletero[f.id])porFletero[f.id]={f,coords:[]};porFletero[f.id].coords.push(coords);
+    const tp=TIPOS[dest.tipo]||TIPOS.propio;
+    const pinHtml=`<div style="background:${f.color};border:2px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);width:28px;height:28px;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:12px">${tp.icon}</span></div>`;
+    const icon=L.divIcon({html:pinHtml,className:'',iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-30]});
+    const conductor=(dest.tipo==='externo')?(dest.transp||'Flete externo'):dest.tipo==='retiro-planta'?'Retiro en planta':`${f.nombre} · ${f.vehiculo}`;
+    const popupHtml=`<div class="lf-popup" style="min-width:200px;max-width:260px"><div class="lf-badge ${tp.cls}">${tp.icon} ${tp.label}</div><div class="lf-nombre">${esc(dest.nombre)}</div><div class="lf-row">🚗 <span style="color:${f.color};font-weight:600">${conductor}</span></div>${dest.dir?`<div class="lf-row">📍 ${esc(dest.dir)}</div>`:''}${dest.envio?`<div class="lf-row">📦 ${esc(dest.envio)}</div>`:''}${dest.notas?`<div class="lf-row">📝 ${esc(dest.notas)}</div>`:''}</div>`;
+    const marker=L.marker(coords,{icon}).addTo(leafletMap).bindPopup(popupHtml,{maxWidth:280});
+    marker.on('click',()=>openFicha(dest,f,dt));mapaMarkers.push(marker);
+  }
+  Object.values(porFletero).forEach(({f,coords})=>{if(coords.length<2)return;const line=L.polyline(coords,{color:f.color,weight:3,opacity:.5,dashArray:'6,6'}).addTo(leafletMap);mapaLines.push(line);});
+  if(bounds.length>0)leafletMap.fitBounds(L.latLngBounds(bounds).pad(.15));
+}
+
+// Cerrar overlays al click fuera
+document.querySelectorAll('.overlay').forEach(ov=>{ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('open');});});
+
+// Init supervisión
+document.getElementById('headerDate').textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+async function initSupervision() {
+  try {
+    const res = await fetch('https://script.google.com/macros/s/AKfycbyh-dZGFgsbuWMr4sSN2iYNvsaO8MGGSKFeAxDrsdEn5ioUgFWSkxdXpNO_GozD079f/exec?t='+Date.now());
+    const data = JSON.parse(await res.text());
+    if(data && typeof data==='object' && !Array.isArray(data)) planData = data;
+  } catch(e) { planData = {}; }
+  try {
+    const s=localStorage.getItem('fadep_standby'); if(s) standbyData=JSON.parse(s);
+    const ex=localStorage.getItem('fadep_extra');
+    if(ex) { const extras=JSON.parse(ex); extras.forEach(f=>{ if(!fleteros.find(x=>x.id===f.id)) fleteros.push(f); }); }
+    const l=localStorage.getItem('fadep_lib'); if(l) LIBRETA=JSON.parse(l);
+  } catch(e) {}
+  poblarFleteroSelect('fFletero');
+  renderMatriz();
+  renderCal();
+}
+initSupervision();
+</script>
+</body>
+</html>
