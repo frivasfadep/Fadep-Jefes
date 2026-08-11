@@ -78,6 +78,7 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:14px;background:#f
 .t-traslado     {background:#f5f0e8;color:#4a3800;border-color:#d8c898}
 .t-alimentos    {background:#fff8e6;color:#5a4000;border-color:#f5d878}
 .t-otros        {background:#f0f0f0;color:#444;border-color:#c0c0c0}
+.t-insumos-fadep{background:#fdeee0;color:#7a2800;border-color:#f5c098}
 .t-standby      {background:#fdf0ee;color:#7a1010;border-color:#f5b0b0}
 
 .add-here{font-size:11px;color:#ccc;cursor:pointer;padding:3px 5px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;border:none;background:none;font-family:inherit}
@@ -231,6 +232,7 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:14px;background:#f
     <span class="leg"><span class="leg-dot" style="background:#f5f0e8;border:1px solid #d8c898"></span>Traslado</span>
     <span class="leg"><span class="leg-dot" style="background:#fff8e6;border:1px solid #f5d878"></span>Insumos</span>
     <span class="leg"><span class="leg-dot" style="background:#f0f0f0;border:1px solid #c0c0c0"></span>Otros</span>
+    <span class="leg"><span class="leg-dot" style="background:#fdeee0;border:1px solid #f5c098"></span>Insumos en FADEP</span>
     <span class="leg-hint">· Clic en cualquier visita para ver el detalle</span>
   </div>
   <div class="cal-wrap"><div class="cal-grid" id="calGrid"></div></div>
@@ -871,7 +873,8 @@ const FLETEROS_FIJOS = [
   {id:0,nombre:'Anibal José María',  ini:'AJ',patente:'TWC 036',vehiculo:'Ford F-100',        color:'#2a78d6',bg:'#deeeff',text:'#0c3d7a'},
   {id:1,nombre:'Guillermo Gasalla',  ini:'GG',patente:'FBT 275',vehiculo:'Agrale 6000',       color:'#1a7a3a',bg:'#daf0e0',text:'#1a4d1a'},
   {id:2,nombre:'Cristian Britez',    ini:'CB',patente:'SBO 000',vehiculo:'Mercedes Benz 608', color:'#c06000',bg:'#fdecd8',text:'#6d3800'},
-  {id:3,nombre:'Marcelo Rovedatti',  ini:'MR',patente:'IAP 475',vehiculo:'Renault Kangoo',    color:'#7a2aae',bg:'#f0e4ff',text:'#4a1a7a'}
+  {id:3,nombre:'Marcelo Rovedatti',  ini:'MR',patente:'IAP 475',vehiculo:'Renault Kangoo',    color:'#7a2aae',bg:'#f0e4ff',text:'#4a1a7a'},
+  {id:99,nombre:'Retiros y/o entregas en FADEP',ini:'FA',patente:'',vehiculo:'En planta',color:'#d35400',bg:'#fdeee0',text:'#7a2800',planta:true}
 ];
 const EXTRA_COLORS = [
   {color:'#c0392b',bg:'#fdf0ee',text:'#7a1010'},
@@ -890,7 +893,8 @@ const TIPOS = {
   docum:         {label:'Envío de documentación',       cls:'t-docum',         icon:'📄'},
   traslado:      {label:'Traslado de personas',         cls:'t-traslado',      icon:'🧑'},
   alimentos:     {label:'Insumos/diligencias',          cls:'t-alimentos',     icon:'🔧'},
-  otros:         {label:'Otros',                        cls:'t-otros',         icon:'🔩'}
+  otros:         {label:'Otros',                        cls:'t-otros',         icon:'🔩'},
+  insumos_fadep: {label:'Entrega de insumos en FADEP',   cls:'t-insumos-fadep', icon:'📥'}
 };
 
 // Estado
