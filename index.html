@@ -1057,7 +1057,7 @@ function makeTag(dest,fid,di){
     <div class="tag-name">${esc(dest.nombre)}</div>
     <div class="tag-sub">${tp.icon} ${esc(sub)}${dest.envio?' · '+dest.envio.slice(0,22):''}</div>
   </div>`;
-
+  tag.onclick=()=>openFicha(dest,f,dayDate(di));
   return tag;
 }
 
@@ -1069,7 +1069,7 @@ function makePoolTag(dest){
     <div class="tag-name">${esc(dest.nombre)}</div>
     <div class="tag-sub">${tp.icon} ${tp.label}</div>
   </div>`;
-
+  tag.onclick=()=>openFichaSinFecha(dest,'Sin asignar — pendiente de programar en la matriz');
   return tag;
 }
 
@@ -1081,8 +1081,29 @@ function makeStandbyTag(dest){
     <div class="tag-name">${esc(dest.nombre)}</div>
     <div class="tag-sub">🔴 ${dest.motivo?dest.motivo.slice(0,30):'Stand by'}${dest.envio?' · '+dest.envio.slice(0,18):''}</div>
   </div>`;
-
+  tag.onclick=()=>openFichaSinFecha(dest,'Sin fecha asignada — pendiente de coordinación',dest.motivo);
   return tag;
+}
+
+// Ficha para destinos sin fecha confirmada (pool o stand by)
+function openFichaSinFecha(dest,estadoTxt,motivo){
+  const tp=TIPOS[dest.tipo]||TIPOS.propio;
+  const badge=document.getElementById('fichaBadge');
+  badge.textContent=(motivo!==undefined?'🔴 Stand by — pendiente':tp.icon+' '+tp.label);
+  badge.className='ficha-badge '+(motivo!==undefined?'t-standby':tp.cls);
+  document.getElementById('fichaNombre').textContent=dest.nombre;
+  const rows=[
+    {icon:'⏳',label:'Estado',val:estadoTxt},
+    motivo!==undefined?{icon:'📝',label:'Motivo del stand by',val:motivo||'Sin especificar'}:null,
+    motivo!==undefined?{icon:tp.icon,label:'Tipo de movimiento',val:tp.label}:null,
+    dest.transp&&dest.tipo!=='externo'?{icon:'🚛',label:'Transportista',val:dest.transp}:null,
+    dest.dir&&dest.dir.trim()&&dest.dir.trim().toUpperCase()!=='A CONFIRMAR'?{icon:'📍',label:'Dirección',val:dest.dir}:null,
+    dest.email?{icon:'✉',label:'Email',val:dest.email}:null,
+    dest.envio?{icon:'📦',label:'Qué enviamos / retiramos',val:dest.envio}:null,
+    dest.notas?{icon:'📝',label:'Notas',val:dest.notas}:null,
+  ].filter(Boolean);
+  document.getElementById('fichaBody').innerHTML=rows.map(r=>`<div class="ficha-row"><span class="ficha-icon">${r.icon}</span><div><div class="ficha-label">${r.label}</div><div class="ficha-val">${esc(r.val)}</div></div></div>`).join('');
+  document.getElementById('modalFicha').classList.add('open');
 }
 
 // Drops
