@@ -1057,8 +1057,7 @@ function makeTag(dest,fid,di){
     <div class="tag-name">${esc(dest.nombre)}</div>
     <div class="tag-sub">${tp.icon} ${esc(sub)}${dest.envio?' · '+dest.envio.slice(0,22):''}</div>
   </div>`;
-  tag.addEventListener('dragstart',e=>{dragItem={id:dest.id,fid,di};dragSrc='cell';setTimeout(()=>tag.style.opacity='.4',0);e.dataTransfer.effectAllowed='move';});
-  tag.addEventListener('dragend',()=>tag.style.opacity='1');
+
   return tag;
 }
 
@@ -1070,8 +1069,7 @@ function makePoolTag(dest){
     <div class="tag-name">${esc(dest.nombre)}</div>
     <div class="tag-sub">${tp.icon} ${tp.label}</div>
   </div>`;
-  tag.addEventListener('dragstart',e=>{dragItem={id:dest.id,fromPool:true,dest};dragSrc='pool';setTimeout(()=>tag.style.opacity='.4',0);e.dataTransfer.effectAllowed='move';});
-  tag.addEventListener('dragend',()=>tag.style.opacity='1');
+
   return tag;
 }
 
@@ -1083,8 +1081,7 @@ function makeStandbyTag(dest){
     <div class="tag-name">${esc(dest.nombre)}</div>
     <div class="tag-sub">🔴 ${dest.motivo?dest.motivo.slice(0,30):'Stand by'}${dest.envio?' · '+dest.envio.slice(0,18):''}</div>
   </div>`;
-  tag.addEventListener('dragstart',e=>{dragItem={id:dest.id,fromStandby:true,dest};dragSrc='standby';setTimeout(()=>tag.style.opacity='.4',0);e.dataTransfer.effectAllowed='move';});
-  tag.addEventListener('dragend',()=>tag.style.opacity='1');
+
   return tag;
 }
 
@@ -1419,13 +1416,6 @@ function exportTxt(){
 
 const SCRIPT_URL='https://script.google.com/macros/s/AKfycbyh-dZGFgsbuWMr4sSN2iYNvsaO8MGGSKFeAxDrsdEn5ioUgFWSkxdXpNO_GozD079f/exec';
 
-async function publicarSemana(){
-  const btn=document.getElementById('btnPublicar');btn.textContent='⏳ Publicando...';btn.disabled=true;
-  try{await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(planData)});
-    btn.textContent='✅ Publicado';btn.style.background='#1a7a3a';btn.style.borderColor='#1a7a3a';
-  }catch(err){btn.textContent='❌ Error';btn.style.background='#c0392b';btn.style.borderColor='#c0392b';}
-  setTimeout(()=>{btn.textContent='🌐 Publicar';btn.style.background='';btn.style.borderColor='';btn.disabled=false;},3000);
-}
 
 // Mapa
 function mapaWeek(dir){mapaWeekStart=new Date(mapaWeekStart);mapaWeekStart.setDate(mapaWeekStart.getDate()+dir*7);actualizarMapaLabel();renderMapa();}
@@ -1495,17 +1485,21 @@ document.getElementById('headerDate').textContent=new Date().toLocaleDateString(
 async function initSupervision() {
   try {
     const res = await fetch('https://script.google.com/macros/s/AKfycbyh-dZGFgsbuWMr4sSN2iYNvsaO8MGGSKFeAxDrsdEn5ioUgFWSkxdXpNO_GozD079f/exec?t='+Date.now());
-    const data = JSON.parse(await res.text());
-    if(data && typeof data==='object' && !Array.isArray(data)) planData = data;
+    const payload = JSON.parse(await res.text());
+    // Soporte para payload nuevo {plan, standby, extra} y legado (solo planData)
+    if(payload && payload.plan) {
+      planData    = payload.plan    || {};
+      standbyData = payload.standby || [];
+      const extras = payload.extra  || [];
+      extras.forEach(f=>{ if(!fleteros.find(x=>x.id===f.id)) fleteros.push(f); });
+    } else if(payload && typeof payload==='object' && !Array.isArray(payload)) {
+      // payload legado: solo planData directamente
+      planData = payload;
+    }
   } catch(e) { planData = {}; }
-  try {
-    const s=localStorage.getItem('fadep_standby'); if(s) standbyData=JSON.parse(s);
-    const ex=localStorage.getItem('fadep_extra');
-    if(ex) { const extras=JSON.parse(ex); extras.forEach(f=>{ if(!fleteros.find(x=>x.id===f.id)) fleteros.push(f); }); }
-    const l=localStorage.getItem('fadep_lib'); if(l) LIBRETA=JSON.parse(l);
-  } catch(e) {}
   poblarFleteroSelect('fFletero');
   renderMatriz();
+  renderStandby();
   renderCal();
 }
 initSupervision();
