@@ -96,8 +96,8 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:14px;background:#f
 
 .cal-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .cal-title{font-size:16px;font-weight:700;flex:1;text-align:center;color:#1a1a18;text-transform:capitalize}
-.cal-wrap{border-radius:10px;border:1px solid #e0e0da;overflow:hidden;background:#fff}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-wrap{border-radius:10px;border:1px solid #e0e0da;overflow-x:auto;background:#fff}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));min-width:630px}
 .cal-dh{text-align:center;font-size:11px;font-weight:700;color:#999;padding:8px 4px;background:#f8f8f5;border-bottom:1px solid #e8e8e0;text-transform:uppercase;letter-spacing:.5px}
 .cal-cell{min-height:100px;padding:5px;border-right:1px solid #eee;border-bottom:1px solid #eee;background:#fff}
 .cal-cell:nth-child(7n){border-right:none}
@@ -1526,4 +1526,4 @@ async function initSupervision() {
 initSupervision();
 </script>
 </body>
-</html> 
+</html>
